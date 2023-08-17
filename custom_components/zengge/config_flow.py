@@ -190,7 +190,8 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if len(devices) == 0:
             return self.async_abort(reason="no_devices_found")
 
-        credentials = await self.hass.async_add_executor_job(zengge_connect.credentials())
+        credentials = zengge_connect.credentials()
+        #credentials = await self.hass.async_add_executor_job(zengge_connect.credentials())
 
         data = {
             CONF_MESH_NAME: credentials['meshKey'],
