@@ -149,7 +149,8 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         devices = []
-        for device in await self.hass.async_add_executor_job(zengge_connect.devices()):
+        for device in await zengge_connect.devices():
+        #for device in await self.hass.async_add_executor_job(zengge_connect.devices()):
             _LOGGER.debug('Processing device - %s', device)
             if 'deviceType' not in device:
                 _LOGGER.warning('Skipped device, missing deviceType - %s', device)
