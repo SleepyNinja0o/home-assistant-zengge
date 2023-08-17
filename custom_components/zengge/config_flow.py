@@ -125,6 +125,7 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         username: str = ''
         password: str = ''
+        typeStr: str = ''
         zengge_connect = None
 
         if user_input is not None:
