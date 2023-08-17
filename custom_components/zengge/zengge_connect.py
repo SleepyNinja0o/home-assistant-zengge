@@ -38,7 +38,7 @@ class ZenggeConnect:
 
         self.login()
 
-    def _generate_timestampcheckcode():
+    def generate_timestampcheckcode(self):
         SECRET_KEY = "0FC154F9C01DFA9656524A0EFABC994F"
         timestamp = str(int(time.time()*1000))
         value = force_bytes("ZG" + timestamp)
@@ -52,7 +52,7 @@ class ZenggeConnect:
         return timestamp,checkcode
 
     def login(self):
-        timestampcheckcode = self._generate_timestampcheckcode()
+        timestampcheckcode = self.generate_timestampcheckcode()
         timestamp = timestampcheckcode[0]
         checkcode = timestampcheckcode[1]
         payload = dict(userID=self._username, password=self._md5password, appSys='Android', timestamp=timestamp, appVer='', checkcode=checkcode)
