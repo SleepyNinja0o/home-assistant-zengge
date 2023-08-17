@@ -1,18 +1,18 @@
 {
-  "domain": "awox",
-  "name": "AwoX MESH control",
+  "domain": "zengge",
+  "name": "Zengge MESH Control",
   "codeowners": [
-    "@fsaris"
+    "@SleepyNinja0o"
   ],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/fsaris/home-assistant-awox",
+  "documentation": "https://github.com/SleepyNinja0o/home-assistant-zengge",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/fsaris/home-assistant-awox/issues",
+  "issue_tracker": "https://github.com/SleepyNinja0o/home-assistant-zengge/issues",
   "requirements": [
     "pexpect>=4.6.0",
-    "pycryptodome>=3.6.6",
+    "pycryptodome>=3.17",
     "pygatt[GATTTOOL]>=4.0.5"
   ],
-  "version": "0.1.5"
+  "version": "0.1.1"
 }
