@@ -23,7 +23,7 @@
         }
       },
       "zengge_connect": {
-        "title": "Connect to MagicHue Cloud",
+        "title": "Connect to Hao Deng Cloud",
         "description": "Provide the credentials you use in the Hao Deng app",
         "data": {
           "username": "Username (email)",
