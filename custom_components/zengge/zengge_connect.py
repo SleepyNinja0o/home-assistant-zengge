@@ -5,11 +5,13 @@ from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.backends import default_backend
 import binascii
 import requests
+import asyncio
 import hashlib
 import urllib
 import json
 import uuid
 import time
+import aiohttp
 
 MAGICHUE_COUNTRY_SERVERS = [{'nationName': 'Australian', 'nationCode': 'AU', 'serverApi': 'oameshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'oa.meshbroker.magichue.net'}, {'nationName': 'Avalon', 'nationCode': 'AL', 'serverApi': 'ttmeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'tt.meshbroker.magichue.net'}, {'nationName': 'China', 'nationCode': 'CN', 'serverApi': 'cnmeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'cn.meshbroker.magichue.net'}, {'nationName': 'England', 'nationCode': 'GB', 'serverApi': 'eumeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'eu.meshbroker.magichue.net'}, {'nationName': 'Espana', 'nationCode': 'ES', 'serverApi': 'eumeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'eu.meshbroker.magichue.net'}, {'nationName': 'France', 'nationCode': 'FR', 'serverApi': 'eumeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'eu.meshbroker.magichue.net'}, {'nationName': 'Germany', 'nationCode': 'DE', 'serverApi': 'eumeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'eu.meshbroker.magichue.net'}, {'nationName': 'Italy', 'nationCode': 'IT', 'serverApi': 'eumeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'eu.meshbroker.magichue.net'}, {'nationName': 'Japan', 'nationCode': 'JP', 'serverApi': 'dymeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'dy.meshbroker.magichue.net'}, {'nationName': 'Russia', 'nationCode': 'RU', 'serverApi': 'eumeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'eu.meshbroker.magichue.net'}, {'nationName': 'United States', 'nationCode': 'US', 'serverApi': 'usmeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'us.meshbroker.magichue.net'}]
 MAGICHUE_COUNTRY_SERVER = MAGICHUE_COUNTRY_SERVERS[10]['serverApi']
@@ -98,7 +100,7 @@ class ZenggeConnect:
         else:
             raise Exception('No login session detected! - %s' % response.json()['error'])
 
-    def devices(self):
+    async def devices(self):
         if self._auth_token is not None and self._user_id is not None:
             headers = {
                 'User-Agent': 'HaoDeng/1.5.7(ANDROID,10,en-US)',
@@ -112,13 +114,15 @@ class ZenggeConnect:
             placeUniID = self._mesh['placeUniID']
             MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW = MAGICHUE_GET_MESH_DEVICES_ENDPOINT.replace("placeUniID=","placeUniID=" + placeUniID)
             MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW = MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW.replace("userId=","userId="+urllib.parse.quote_plus(self._user_id))
-            response = requests.get(MAGICHUE_CONNECTURL + MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW, headers=headers)
-            
-            if response.status_code != 200:
-                raise Exception('Device retrieval for mesh failed - %s' % response.json()['error'])
-            else:
-                responseJSON = response.json()['result']
-                self._mesh.update({'devices':responseJSON})
-                return responseJSON
+
+            #response = requests.get(MAGICHUE_CONNECTURL + MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW, headers=headers)
+            async with aiohttp.ClientSession() as session:
+                async with session.get(MAGICHUE_CONNECTURL + MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW, headers=headers) as response:
+                    if response.status_code != 200:
+                        raise Exception('Device retrieval for mesh failed - %s' % response.json()['error'])
+                    else:
+                        responseJSON = response.json()['result']
+                        self._mesh.update({'devices':responseJSON})
+                        return responseJSON
         else:
             raise Exception('No login session detected! - %s' % response.json()['error'])
