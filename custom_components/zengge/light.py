@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 
-from .awox_mesh import AwoxMesh
+from .zengge_mesh import ZenggeMesh
 from typing import Any, Dict, Optional
 
 import homeassistant.util.color as color_util
@@ -70,7 +70,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         if len(supported_color_modes) == 0:
             supported_color_modes.add(ColorMode.ONOFF)
 
-        light = AwoxLight(mesh, device[CONF_MAC], device[CONF_MESH_ID], device[CONF_NAME], supported_color_modes,
+        light = ZenggeLight(mesh, device[CONF_MAC], device[CONF_MESH_ID], device[CONF_NAME], supported_color_modes,
                           device[CONF_MANUFACTURER], device[CONF_MODEL], device[CONF_FIRMWARE])
         _LOGGER.info('Setup light [%d] %s', device[CONF_MESH_ID], device[CONF_NAME])
 
@@ -88,19 +88,19 @@ def convert_value_to_available_range(value, min_from, max_from, min_to, max_to) 
     return max(new_value, min_to)
 
 
-class AwoxLight(CoordinatorEntity, LightEntity):
+class ZenggeLight(CoordinatorEntity, LightEntity):
     """Representation of an Awesome Light."""
 
-    def __init__(self, coordinator: AwoxMesh, mac: str, mesh_id: int, name: str, supported_color_modes: set[str] | None,
+    def __init__(self, coordinator: ZenggeMesh, mac: str, mesh_id: int, name: str, supported_color_modes: set[str] | None,
                  manufacturer: str, model: str, firmware: str):
-        """Initialize an AwoX MESH Light."""
+        """Initialize an Zengge MESH Light."""
         super().__init__(coordinator)
         self._mesh = coordinator
         self._mac = mac
         self._mesh_id = mesh_id
 
         self._attr_name = name
-        self._attr_unique_id = "awoxmesh-%s" % self._mesh_id
+        self._attr_unique_id = "zenggemesh-%s" % self._mesh_id
         self._attr_supported_color_modes = supported_color_modes
 
         self._manufacturer = manufacturer
