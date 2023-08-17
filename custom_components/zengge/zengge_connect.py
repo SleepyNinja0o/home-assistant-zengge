@@ -1,14 +1,14 @@
-"""Awox connect API"""
+"""Zengge connect API"""
 import requests
 import json
 import uuid
 
-AWOX_CONNECT_URL = 'https://l4hparse-prod.awox.cloud/parse/'
-AWOX_CONNECT_APPLICATION_ID = '55O69FLtoxPt67LLwaHGpHmVWndhZGn9Wty8PLrJ'
-AWOX_CONNECT_CLIENT_KEY = 'PyR3yV65rytEicteNlQHSVNpAGvCByOrsLiEqJtI'
+ZENGGE_CONNECT_URL = 'https://l4hparse-prod.awox.cloud/parse/'
+ZENGGE_CONNECT_APPLICATION_ID = '55O69FLtoxPt67LLwaHGpHmVWndhZGn9Wty8PLrJ'
+ZENGGE_CONNECT_CLIENT_KEY = 'PyR3yV65rytEicteNlQHSVNpAGvCByOrsLiEqJtI'
 
 
-class AwoxConnect:
+class ZenggeConnect:
 
     def __init__(self, username: str, password: str, installation_id: str = None):
         self._username = username
@@ -27,13 +27,13 @@ class AwoxConnect:
         payload = json.dumps({"username": self._username, "password": self._password, "_method": "GET"})
 
         headers = {
-            'x-parse-application-id': AWOX_CONNECT_APPLICATION_ID,
+            'x-parse-application-id': ZENGGE_CONNECT_APPLICATION_ID,
             'x-parse-installation-id': self._installation_id,
-            'x-parse-client-key': AWOX_CONNECT_CLIENT_KEY,
+            'x-parse-client-key': ZENGGE_CONNECT_CLIENT_KEY,
             'content-type': 'application/json'
         }
 
-        response = requests.request("POST", AWOX_CONNECT_URL + 'login', headers=headers, data=payload)
+        response = requests.request("POST", ZENGGE_CONNECT_URL + 'login', headers=headers, data=payload)
 
         if response.status_code != 200:
             raise Exception('Login failed - %s' % response.json()['error'])
@@ -48,14 +48,14 @@ class AwoxConnect:
             "_method": "GET"
         })
         headers = {
-            'x-parse-application-id': AWOX_CONNECT_APPLICATION_ID,
+            'x-parse-application-id': ZENGGE_CONNECT_APPLICATION_ID,
             'x-parse-installation-id': self._installation_id,
-            'x-parse-client-key': AWOX_CONNECT_CLIENT_KEY,
+            'x-parse-client-key': ZENGGE_CONNECT_CLIENT_KEY,
             'content-type': 'application/json',
             'x-parse-session-token': self._session_token
         }
 
-        response = requests.request("POST", AWOX_CONNECT_URL + 'classes/' + class_name, headers=headers, data=payload)
+        response = requests.request("POST", ZENGGE_CONNECT_URL + 'classes/' + class_name, headers=headers, data=payload)
 
         if response.status_code != 200:
             raise Exception('Loading data failed - %s' % response.json()['error'])
