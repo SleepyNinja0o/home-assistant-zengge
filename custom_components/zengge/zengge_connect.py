@@ -37,7 +37,7 @@ class ZenggeConnect:
             self._installation_id = str(uuid.uuid4())
 
         self.login()
-        self.credentials()
+        #self.credentials()
 
     def generate_timestampcheckcode(self):
         SECRET_KEY = "0FC154F9C01DFA9656524A0EFABC994F"
