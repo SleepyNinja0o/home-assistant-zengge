@@ -31,6 +31,7 @@ class ZenggeConnect:
         self._auth_token = None
         self._device_secret = None
         self._mesh = None
+        self._installation_id = installation_id
 
         if not self._installation_id:
             self._installation_id = str(uuid.uuid4())
