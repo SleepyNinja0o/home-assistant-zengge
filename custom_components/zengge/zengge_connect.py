@@ -37,7 +37,7 @@ class ZenggeConnect:
             self._installation_id = str(uuid.uuid4())
 
         self.login()
-        #self.credentials()
+        self.credentials()
 
     def generate_timestampcheckcode(self):
         SECRET_KEY = "0FC154F9C01DFA9656524A0EFABC994F"
@@ -78,6 +78,8 @@ class ZenggeConnect:
         self._device_secret = responseJSON['deviceSecret']
 
     def credentials(self):
+        if self._mesh is not None:
+            return self._mesh
         if self._auth_token is not None and self._user_id is not None:
             headers = {
                 'User-Agent': 'HaoDeng/1.5.7(ANDROID,10,en-US)',
