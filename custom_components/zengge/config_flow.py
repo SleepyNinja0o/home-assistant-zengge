@@ -173,8 +173,8 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 device['firmwareRevision'] = 'unknown'
             if 'versionNum' not in device:
                 device['versionNum'] = None
-            if 'deviceType' == 65:
-                device['type'] = "light|color"
+            if device['deviceType'] == 65:
+                device['deviceType'] = "light|color"
 
             devices.append({
                 'mesh_id': int(device['meshAddress']),
@@ -184,7 +184,7 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 'manufacturer': device['vendor'],
                 'firmware': device['firmwareRevision'],
                 'hardware': device['versionNum'],
-                'type': device['type']
+                'type': device['deviceType']
             })
 
         if len(devices) == 0:
