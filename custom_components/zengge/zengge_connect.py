@@ -37,6 +37,7 @@ class ZenggeConnect:
             self._installation_id = str(uuid.uuid4())
 
         self.login()
+        self.credentials()
 
     def generate_timestampcheckcode(self):
         SECRET_KEY = "0FC154F9C01DFA9656524A0EFABC994F"
@@ -109,7 +110,7 @@ class ZenggeConnect:
             placeUniID = self._mesh['placeUniID']
             MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW = MAGICHUE_GET_MESH_DEVICES_ENDPOINT.replace("placeUniID=","placeUniID=" + placeUniID)
             MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW = MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW.replace("userId=","userId="+urllib.parse.quote_plus(self._user_id))
-            response = requests.get(magichue_connecturl + MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW, headers=headers)
+            response = requests.get(MAGICHUE_CONNECTURL + MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW, headers=headers)
             
             if response.status_code != 200:
                 raise Exception('Device retrieval for mesh failed - %s' % response.json()['error'])
