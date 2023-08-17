@@ -151,11 +151,11 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         devices = []
         for device in await self.hass.async_add_executor_job(zengge_connect.devices):
             _LOGGER.debug('Processing device - %s', device)
-            if 'type' not in device:
-                _LOGGER.warning('Skipped device, missing type - %s', device)
+            if 'deviceType' not in device:
+                _LOGGER.warning('Skipped device, missing deviceType - %s', device)
                 continue
-            if 'address' not in device or not device['address']:
-                _LOGGER.warning('Skipped device, missing address - %s', device)
+            if 'meshAddress' not in device or not device['meshAddress']:
+                _LOGGER.warning('Skipped device, missing meshAddress - %s', device)
                 continue
             if 'macAddress' not in device:
                 _LOGGER.warning('Skipped device, missing macAddress - %s', device)
@@ -168,19 +168,21 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 device['modelName'] = 'unknown'
             if 'vendor' not in device:
                 device['vendor'] = 'unknown'
-            if 'version' not in device:
-                device['version'] = 'unknown'
-            if 'hardwareVersion' not in device:
-                device['hardwareVersion'] = None
+            if 'firmwareRevision' not in device:
+                device['firmwareRevision'] = 'unknown'
+            if 'versionNum' not in device:
+                device['versionNum'] = None
+            if 'deviceType' == 65:
+                device['type'] = "light|color"
 
             devices.append({
-                'mesh_id': int(device['address']),
+                'mesh_id': int(device['meshAddress']),
                 'name': device['displayName'],
                 'mac': device['macAddress'],
                 'model': device['modelName'],
                 'manufacturer': device['vendor'],
-                'firmware': device['version'],
-                'hardware': device['hardwareVersion'],
+                'firmware': device['firmwareRevision'],
+                'hardware': device['versionNum'],
                 'type': device['type']
             })
 
