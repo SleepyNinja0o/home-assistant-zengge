@@ -122,7 +122,7 @@ MODEL_NBR_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(0x2A24)
 
 logger = logging.getLogger(__name__)
 
-class AwoxAdapter(pygatt.GATTToolBackend):
+class ZenggeAdapter(pygatt.GATTToolBackend):
 
     def connect(self, address, timeout=DEFAULT_CONNECT_TIMEOUT_S,
                 address_type=BLEAddressType.public, _reconnecting=False):
@@ -142,23 +142,23 @@ class AwoxAdapter(pygatt.GATTToolBackend):
             logger.error(message)
             raise NotConnectedError(message)
 
-        self._connected_device = AwoxDevice(address, self)
+        self._connected_device = ZenggeDevice(address, self)
         return self._connected_device
 
     def reset(self):
         # skip resetting
         return
 
-class AwoxDevice(GATTToolBLEDevice):
+class ZenggeDevice(GATTToolBLEDevice):
 
     def __init__(self, address, backend):
-        super(AwoxDevice, self).__init__(address, backend)
+        super(ZenggeDevice, self).__init__(address, backend)
 
     def _notification_handles(self, uuid):
         # Expect notifications on the value handle...
         value_handle = self.get_handle(uuid)
 
-        # Awox/Eglo devices use the same handle to read/write and trigger notifications
+        # Zengge/Eglo devices use the same handle to read/write and trigger notifications
         characteristic_config_handle = value_handle
 
         return value_handle, characteristic_config_handle
@@ -167,7 +167,7 @@ class AwoxDevice(GATTToolBLEDevice):
     def connected(self) -> bool:
         return self._connected
 
-class AwoxMeshLight:
+class ZenggeMeshLight:
     def __init__(self, mac, mesh_name="unpaired", mesh_password="1234", mesh_id=0):
         """
         Args :
@@ -187,7 +187,7 @@ class AwoxMeshLight:
 
         self._reconnecting = False
         self.reconnect_counter = 0
-        self.adapter = AwoxAdapter()
+        self.adapter = ZenggeAdapter()
 
         self.mesh_name = mesh_name.encode()
         self.mesh_password = mesh_password.encode()
@@ -233,7 +233,7 @@ class AwoxMeshLight:
             self.session_key = pckt.make_session_key(self.mesh_name, self.mesh_password, session_random, reply[1:9])
         else:
             if reply[0] == 0xe:
-                logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Device authentication error: known mesh credentials are not excepted by the device. Did you re-pair them to your Awox app with a different account?')
+                logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Device authentication error: known mesh credentials are not excepted by the device. Did you re-pair them to your Hao Deng app with a different account?')
             else:
                 logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Unexpected pair value : {repr(reply)}')
             self.disconnect()
