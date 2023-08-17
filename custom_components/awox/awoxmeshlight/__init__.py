@@ -1,3 +1,5 @@
+#!!!The majority of this code was reused from the home-assistant-awox project developed by fsaris. Huge shoutout to him for all his hard work on this!!!
+
 from __future__ import unicode_literals
 
 import binascii
