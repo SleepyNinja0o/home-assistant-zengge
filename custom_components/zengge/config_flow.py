@@ -135,7 +135,7 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 zengge_connect = await self.hass.async_add_executor_job(create_zengge_connect_object, username, password)
             except Exception as e:
-                _LOGGER.error('Can not login to Magic Hue server [%s]', e)
+                _LOGGER.error('Can not login to Zengge cloud server [%s]', e)
                 errors[CONF_PASSWORD] = 'cannot_connect'
 
         if user_input is None or zengge_connect is None or errors:
@@ -190,9 +190,9 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         credentials = await self.hass.async_add_executor_job(zengge_connect.credentials)
 
         data = {
-            CONF_MESH_NAME: credentials['client_id'],
-            CONF_MESH_PASSWORD: credentials['access_token'],
-            CONF_MESH_KEY: credentials['refresh_token'],
+            CONF_MESH_NAME: credentials['meshKey'],
+            CONF_MESH_PASSWORD: credentials['meshPassword'],
+            CONF_MESH_KEY: credentials['meshLTK'],
             # 'zengge_connect': {
             #     CONF_USERNAME: user_input[CONF_USERNAME],
             #     CONF_PASSWORD: user_input[CONF_PASSWORD]
@@ -200,7 +200,7 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             'devices': devices
         }
 
-        return self.async_create_entry(title='Zengge Smart Connect', data=data)
+        return self.async_create_entry(title='Zengge Cloud', data=data)
 
     async def async_step_mesh_info(self, user_input: Optional[Mapping] = None):
 
