@@ -1,4 +1,4 @@
-"""AwoX Mesh handler"""
+"""Zengge Mesh handler"""
 import logging
 import asyncio
 import async_timeout
@@ -12,15 +12,15 @@ from homeassistant.core import HomeAssistant, callback, CALLBACK_TYPE
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, EVENT_HOMEASSISTANT_STOP
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-# import awoxmeshlight from .awoxmeshlight
-from .awoxmeshlight import AwoxMeshLight
+# import zenggemeshlight from .zenggemeshlight
+from .zenggemeshlight import ZenggeMeshLight
 from .const import DOMAIN
 from .scanner import DeviceScanner
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class AwoxMesh(DataUpdateCoordinator):
+class ZenggeMesh(DataUpdateCoordinator):
 
     def __init__(self, hass: HomeAssistant, mesh_name: str, mesh_password: str, mesh_long_term_key: str):
         """
@@ -41,7 +41,7 @@ class AwoxMesh(DataUpdateCoordinator):
         self._mesh_password = mesh_password
         self._mesh_long_term_key = mesh_long_term_key
 
-        self._connected_bluetooth_device: AwoxMeshLight = None
+        self._connected_bluetooth_device: ZenggeMeshLight = None
         self._scanning_devices = False
 
         self._state = {
@@ -55,7 +55,7 @@ class AwoxMesh(DataUpdateCoordinator):
         self._queue = queue.Queue()
         self._shutdown = False
         self._command_tread = threading.Thread(target=self._process_command_queue,
-                                               name="AwoxMeshCommands-" + self._mesh_name)
+                                               name="ZenggeMeshCommands-" + self._mesh_name)
         self._command_tread.daemon = True
         self._command_tread.start()
 
@@ -80,7 +80,7 @@ class AwoxMesh(DataUpdateCoordinator):
 
     @property
     def identifier(self) -> str:
-        return 'awox_mesh.' + self._mesh_name
+        return 'zengge_mesh.' + self._mesh_name
 
     @property
     def state(self):
@@ -337,7 +337,7 @@ class AwoxMesh(DataUpdateCoordinator):
             if device_info['mac'] is None:
                 continue
 
-            device = AwoxMeshLight(device_info['mac'], self._mesh_name, self._mesh_password, mesh_id)
+            device = ZenggeMeshLight(device_info['mac'], self._mesh_name, self._mesh_password, mesh_id)
             try:
                 _LOGGER.info("[%s][%s][%s] Trying to connect", self.mesh_name, device_info['name'], device.mac)
                 async with async_timeout.timeout(20):
@@ -375,7 +375,7 @@ class AwoxMesh(DataUpdateCoordinator):
             _LOGGER.info(f'[{self.mesh_name}] Already scanning for devices')
             return
 
-        _LOGGER.info(f'[{self.mesh_name}] Search for AwoX devices to find closest (best RSSI value) device')
+        _LOGGER.info(f'[{self.mesh_name}] Search for Zengge devices to find closest (best RSSI value) device')
 
         self._scanning_devices = True
 
