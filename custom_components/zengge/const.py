@@ -1,4 +1,4 @@
-"""Constants for the Awox integration."""
+"""Constants for the Zengge integration."""
 
 DOMAIN = 'zengge'
 
