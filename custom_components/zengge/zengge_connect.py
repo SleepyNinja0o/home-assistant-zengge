@@ -3,7 +3,7 @@ import requests
 import json
 import uuid
 
-ZENGGE_CONNECT_URL = 'https://l4hparse-prod.awox.cloud/parse/'
+ZENGGE_CONNECT_URL = 'https://l4hparse-prod.***.cloud/parse/'
 ZENGGE_CONNECT_APPLICATION_ID = '55O69FLtoxPt67LLwaHGpHmVWndhZGn9Wty8PLrJ'
 ZENGGE_CONNECT_CLIENT_KEY = 'PyR3yV65rytEicteNlQHSVNpAGvCByOrsLiEqJtI'
 
