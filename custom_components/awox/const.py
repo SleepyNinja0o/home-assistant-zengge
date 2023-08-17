@@ -1,6 +1,6 @@
 """Constants for the Awox integration."""
 
-DOMAIN = 'awox'
+DOMAIN = 'zengge'
 
 CONF_MESH_NAME = 'mesh_name'
 CONF_MESH_PASSWORD = 'mesh_password'
