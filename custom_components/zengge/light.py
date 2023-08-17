@@ -43,7 +43,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     lights = []
     for device in entry.data[CONF_DEVICES]:
         # Skip non lights
-        if 'light' not in device['deviceType']:
+        if 'light' not in device['type']:
             continue
         if CONF_MANUFACTURER not in device:
             device[CONF_MANUFACTURER] = None
@@ -55,8 +55,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         type_string = ''
         supported_color_modes = set()
 
-        if 'deviceType' in device:
-            type_string = device['deviceType']
+        if 'type' in device:
+            type_string = device['type']
 
         if 'color' in type_string:
             supported_color_modes.add(ColorMode.RGB)
