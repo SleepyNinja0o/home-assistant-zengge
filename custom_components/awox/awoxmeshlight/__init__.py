@@ -32,40 +32,72 @@ C_MESH_ADDRESS = 0xe0
 #:
 C_MESH_RESET = 0xe3
 
-#: On/Off command. Data : one byte 0, 1
+#: On/Off command. Data : [0x01] and one byte 0, 1
+#: Brightness command. Data : [0x02], one byte 0x1 to 0x64, and one byte for dimming target
+#:   Dimming targets:
+#     0x01 Set RGB and keep WC
+#     0x02 Set WC, keep RGB
+#     0x03 Set RGB and WC brightness
+#     0x04 Set RGB and turn off WC
+#     0x05 Set WC, turn off RGB
+#     0x06 According to the current situation, the lights are set
+#: Increasing brightness command. Data: [0x03] and one byte for brightness percentage 0x1 to 0x64 (0 or > 100, default increase by 10%)
+#: Decreasing brightness command. Data: [0x04] and one byte for brightness percentage 0x1 to 0x64 (0 or > 100, default decrease by 10%)
 C_POWER = 0xd0
 
 #: Data : one byte
-C_LIGHT_MODE = 0x33
+#SN - Not used??
+#C_LIGHT_MODE = 0x33
 
 #: Data : one byte 0 to 6
-C_PRESET = 0xc8
+#SN - Zengge does not support presets
+#C_PRESET = 0xc8
 
 #: White temperature. one byte 0 to 0x7f
-C_WHITE_TEMPERATURE = 0xf0
+#SN - Not used by Zengge
+#C_WHITE_TEMPERATURE = 0xf0
 
 #: one byte 1 to 0x7f
-C_WHITE_BRIGHTNESS = 0xf1
+#SN - Not used by Zengge
+#C_WHITE_BRIGHTNESS = 0xf1
 
-#: 4 bytes : 0x4 red green blue
+#SN - Data: 4 bytes : [Change Mode] [Value1] [Value2] [Value3]
+#  Change mode of light (RGB, Warm, CCT/Lum, AuxLight, ColorTemp/Lum/AuxLight)
+#    0x60 is the mode for static RGB (Value1,Value2,Value3 stand for RGB values 0-255)
+#    0x61 stands for static warm white (Value1 represents warm white value 0-255)
+#    0x62 stands for color temp/luminance (Value1 represents CCT scale value 0-100, Value2 represents luminance value 0-100)
+#    0x63 stands for auxiliary light (Value1 represents aux light brightness)
+#    0x64 stands for color temp value + aux light (Value1 represents CCT ratio value 1-100, Value 2 represents luminance value 0-100, Value 3 represents aux luminance value 0-100)
 C_COLOR = 0xe2
+C_COLOR_RGB = 0x60
+C_COLOR_WARMWHITE = 0x61
+C_COLOR_CCTLUM = 0x62
+C_COLOR_AUX = 0x63
+C_COLOR_CCTLUMAUX = 0x64
 
 #: one byte : 0xa to 0x64 ....
-C_COLOR_BRIGHTNESS = 0xf2
+#SN - Zengge does not use this opcode
+#C_COLOR_BRIGHTNESS = 0xf2
 
 #: Data 4 bytes : How long a color is displayed in a sequence in milliseconds as
 #:   an integer in little endian order
-C_SEQUENCE_COLOR_DURATION = 0xf5
+#SN - Zengge does not use this opcode
+#C_SEQUENCE_COLOR_DURATION = 0xf5
 
 #: Data 4 bytes : Duration of the fading between colors in a sequence, in
 #:   milliseconds, as an integer in little endian order
-C_SEQUENCE_FADE_DURATION = 0xf6
+#SN - Zengge does not use this opcode
+#C_SEQUENCE_FADE_DURATION = 0xf6
 
-#: 7 bytes
+#: 7 bytes [Year-Low][Year-High][Month][Day][Hours][Minutes][Seconds]
 C_TIME = 0xe4
 
+#: 7 bytes [Year-Low][Year-High][Month][Day][Hours][Minutes][Seconds]
+C_GET_TIME = 0xe4
+
 #: 10 bytes
-C_ALARMS = 0xe5
+#SN - Zengge does not use this opcode
+#C_ALARMS = 0xe5
 
 #: Request current light/device status
 C_GET_STATUS_SENT = 0xda
@@ -81,7 +113,7 @@ COMMAND_CHAR_UUID = '00010203-0405-0607-0809-0a0b0c0d1912'
 STATUS_CHAR_UUID = '00010203-0405-0607-0809-0a0b0c0d1911'
 OTA_CHAR_UUID = '00010203-0405-0607-0809-0a0b0c0d1913'
 
-
+MANUFACTURER_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(0x2A29)
 FIRMWARE_REV_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(0x2A26)
 HARDWARE_REV_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(0x2A27)
 MODEL_NBR_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(0x2A24)
@@ -347,7 +379,7 @@ class AwoxMeshLight:
 
         self._parseStatusResult(message)
 
-    def _parseStatusResult(self, data):
+    def _parseStatusResult(self, data): ###THIS NEEDS MODIFIED FOR ZENGGE###
         command = struct.unpack('B', data[7:8])[0]
         status = {}
         if command == C_GET_STATUS_RECEIVED:
@@ -419,7 +451,7 @@ class AwoxMeshLight:
         Args :
             red, green, blue: between 0 and 0xff
         """
-        data = struct.pack('BBBB', 0x04, red, green, blue)
+        data = struct.pack('BBBB', C_COLOR_RGB, red, green, blue)
         return self.writeCommand(C_COLOR, data, dest)
 
     def setColorBrightness(self, brightness, dest=None):
@@ -446,7 +478,7 @@ class AwoxMeshLight:
         data = struct.pack("<I", duration)
         return self.writeCommand(C_SEQUENCE_FADE_DURATION, data, dest)
 
-    def setPreset(self, num, dest=None):
+    '''def setPreset(self, num, dest=None):
         """
         Set a preset color sequence.
 
@@ -454,7 +486,7 @@ class AwoxMeshLight:
             num: number between 0 and 6
         """
         data = struct.pack('B', num)
-        return self.writeCommand(C_PRESET, data, dest)
+        return self.writeCommand(C_PRESET, data, dest)'''
 
     def setWhiteBrightness(self, brightness, dest=None):
         """
