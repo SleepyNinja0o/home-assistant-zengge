@@ -1,11 +1,11 @@
-"""Awox device scanner class"""
+"""Zengge device scanner class"""
 import asyncio
 import async_timeout
 import logging
 
 from homeassistant.core import HomeAssistant
-from .awoxmeshlight import AwoxMeshLight
-# import awoxmeshlight from .awoxmeshlight
+from .zenggemeshlight import ZenggeMeshLight
+# import zenggemeshlight from .zenggemeshlight
 from .bluetoothctl import Bluetoothctl
 
 
@@ -37,7 +37,7 @@ class DeviceScanner:
 
         try:
             bl = await hass.async_add_executor_job(init)
-            _LOGGER.info("Scanning %d seconds for AwoX bluetooth mesh devices!", scan_timeout)
+            _LOGGER.info("Scanning %d seconds for Zengge bluetooth mesh devices!", scan_timeout)
             await hass.async_add_executor_job(bl.start_scan)
             await asyncio.sleep(scan_timeout)
 
@@ -65,7 +65,7 @@ class DeviceScanner:
 
         devices = await DeviceScanner.async_find_devices(hass)
 
-        _LOGGER.debug("Found %d AwoX devices" % (len(devices)))
+        _LOGGER.debug("Found %d Zengge devices" % (len(devices)))
 
         for mac, dev in devices.items():
             _LOGGER.debug("Device %s [%s]" % (dev['name'], dev['mac']))
@@ -81,10 +81,10 @@ class DeviceScanner:
                 _LOGGER.debug('Failed to connect [%s]' % dev['mac'])
 
     @staticmethod
-    def _connect(address, username: str, password: str, mesh_key: str = None) -> AwoxMeshLight:
+    def _connect(address, username: str, password: str, mesh_key: str = None) -> ZenggeMeshLight:
 
         # Try to connect with factory defaults
-        light = AwoxMeshLight(address)
+        light = ZenggeMeshLight(address)
         light.connect()
 
         # When connected with factory defaults and `mesh_key` is set add device to our mesh
@@ -93,7 +93,7 @@ class DeviceScanner:
             light.setMesh(username, password, mesh_key)
 
         if not light.session_key:
-            light = AwoxMeshLight(address, username, password)
+            light = ZenggeMeshLight(address, username, password)
             light.connect()
 
         return light
