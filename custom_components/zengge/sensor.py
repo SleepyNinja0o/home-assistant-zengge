@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 
-from .awox_mesh import AwoxMesh
+from .zengge_mesh import ZenggeMesh
 from typing import Any
 
 from homeassistant.helpers.entity import DeviceInfo
@@ -27,13 +27,13 @@ _LOGGER = logging.getLogger(__name__)
 SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key='connected_device',
-        name="AwoX mesh",
+        name="Zengge mesh",
         icon="mdi:bluetooth-audio",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
         key='last_rssi_check',
-        name="AwoX mesh last RSSI check",
+        name="Zengge mesh last RSSI check",
         device_class=SensorDeviceClass.TIMESTAMP,
         icon="mdi:calendar-clock",
         entity_registry_enabled_default=False,
@@ -41,7 +41,7 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
     ),
     SensorEntityDescription(
         key='last_connection',
-        name="AwoX mesh last connection",
+        name="Zengge mesh last connection",
         device_class=SensorDeviceClass.TIMESTAMP,
         icon="mdi:calendar-clock",
         entity_registry_enabled_default=False,
@@ -52,17 +52,17 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     mesh = hass.data[DOMAIN][entry.entry_id]
 
-    entities = [AwoxMeshSensor(mesh, description) for description in SENSOR_TYPES]
+    entities = [ZenggeMeshSensor(mesh, description) for description in SENSOR_TYPES]
 
     async_add_entities(entities)
 
 
-class AwoxMeshSensor(CoordinatorEntity, SensorEntity):
+class ZenggeMeshSensor(CoordinatorEntity, SensorEntity):
     """Representation of an Awesome Light."""
 
-    def __init__(self, coordinator: AwoxMesh, description: SensorEntityDescription):
+    def __init__(self, coordinator: ZenggeMesh, description: SensorEntityDescription):
 
-        """Initialize an AwoX MESH plug."""
+        """Initialize an Zengge MESH plug."""
         super().__init__(coordinator)
         self.entity_description = description
         self._mesh = coordinator
@@ -74,8 +74,8 @@ class AwoxMeshSensor(CoordinatorEntity, SensorEntity):
         """Get device info."""
         return DeviceInfo(
             identifiers={(DOMAIN, self._mesh.identifier)},
-            name='AwoX mesh',
-            manufacturer='AwoX',
+            name='Zengge mesh',
+            manufacturer='Zengge',
             model='Bluetooth Mesh',
         )
 
