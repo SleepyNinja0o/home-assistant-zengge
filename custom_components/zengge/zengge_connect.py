@@ -105,16 +105,16 @@ class ZenggeConnect:
                 'Accept-Encoding': 'gzip'
             }
 
-			placeUniID = self._mesh['placeUniID']
-			MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW = MAGICHUE_GET_MESH_DEVICES_ENDPOINT.replace("placeUniID=","placeUniID=" + placeUniID)
-			MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW = MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW.replace("userId=","userId="+urllib.parse.quote_plus(self._user_id))
-			response = requests.get(magichue_connecturl + MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW, headers=headers)
-			
-			if response.status_code != 200:
-				raise Exception('Device retrieval for mesh failed - %s' % response.json()['error'])
-			else:
-				responseJSON = response.json()['result']
-				self._mesh.update({'devices':responseJSON})
-				return responseJSON
+            placeUniID = self._mesh['placeUniID']
+            MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW = MAGICHUE_GET_MESH_DEVICES_ENDPOINT.replace("placeUniID=","placeUniID=" + placeUniID)
+            MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW = MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW.replace("userId=","userId="+urllib.parse.quote_plus(self._user_id))
+            response = requests.get(magichue_connecturl + MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW, headers=headers)
+            
+            if response.status_code != 200:
+                raise Exception('Device retrieval for mesh failed - %s' % response.json()['error'])
+            else:
+                responseJSON = response.json()['result']
+                self._mesh.update({'devices':responseJSON})
+                return responseJSON
         else:
             raise Exception('No login session detected! - %s' % response.json()['error'])
