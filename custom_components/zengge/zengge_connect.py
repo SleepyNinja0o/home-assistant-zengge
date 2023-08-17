@@ -121,7 +121,7 @@ class ZenggeConnect:
                     if response.status != 200: #Previous code:   if response.status_code != 200:
                         raise Exception('Device retrieval for mesh failed - %s' % response.json()['error'])
                     else:
-                        responseJSON = response.json()['result']
+                        responseJSON = await response.json()['result'] #Previous Code:  responseJSON = response.json()['result'] #Previous Code:  
                         self._mesh.update({'devices':responseJSON})
                         return responseJSON
         else:
