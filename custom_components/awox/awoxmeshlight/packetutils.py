@@ -67,7 +67,7 @@ def make_command_packet (key, address, dest_id, command, data):
 
     # Build payload
     dest = struct.pack ("<H", dest_id)
-    payload = (dest + struct.pack('B', command) + b'\x60\x01' + data).ljust(15, b'\x00')
+    payload = (dest + struct.pack('B', command) + b'\x11\x02' + data).ljust(15, b'\x00') #Change b'\x60\x01 to b'\x11\x02
 
     # Compute checksum
     check = make_checksum (key, nonce, payload)
