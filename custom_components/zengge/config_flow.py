@@ -1,4 +1,4 @@
-"""Config flow for AwoX MESH lights"""
+"""Config flow for Zengge MESH lights"""
 
 from typing import Mapping, Optional
 import logging
@@ -13,17 +13,17 @@ from homeassistant.const import (
 )
 from .scanner import DeviceScanner
 from .const import DOMAIN, CONF_MESH_NAME, CONF_MESH_PASSWORD, CONF_MESH_KEY
-from .awox_connect import AwoxConnect
+from .zengge_connect import ZenggeConnect
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def create_awox_connect_object(username, password) -> AwoxConnect:
-    return AwoxConnect(username, password)
+def create_zengge_connect_object(username, password) -> ZenggeConnect:
+    return ZenggeConnect(username, password)
 
 
-class AwoxMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a Awox config flow."""
+class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle a Zengge config flow."""
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
@@ -37,7 +37,7 @@ class AwoxMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: Optional[Mapping] = None):
 
-        return await self.async_step_awox_connect()
+        return await self.async_step_zengge_connect()
 
         # todo: fix manual connect
         _LOGGER.debug("async_step_user: user_input: %s", user_input)
@@ -85,7 +85,7 @@ class AwoxMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="manual",
                 data_schema=vol.Schema({
                     vol.Required('mac'): str,
-                    vol.Required("name", description={"suggested_value": "AwoX light"}): str,
+                    vol.Required("name", description={"suggested_value": "Zengge light"}): str,
                 }),
             )
 
@@ -112,7 +112,7 @@ class AwoxMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         for discovery in self._discoveries
                     }
                 ),
-                vol.Required("name", description={"suggested_value": "AwoX light"}): str,
+                vol.Required("name", description={"suggested_value": "Zengge light"}): str,
             }
         )
         return self.async_show_form(
@@ -120,12 +120,12 @@ class AwoxMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=data_schema,
         )
 
-    async def async_step_awox_connect(self, user_input: Optional[Mapping] = None):
+    async def async_step_zengge_connect(self, user_input: Optional[Mapping] = None):
 
         errors = {}
         username: str = ''
         password: str = ''
-        awox_connect = None
+        zengge_connect = None
 
         if user_input is not None:
             username = user_input.get(CONF_USERNAME)
@@ -133,14 +133,14 @@ class AwoxMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if username and password:
             try:
-                awox_connect = await self.hass.async_add_executor_job(create_awox_connect_object, username, password)
+                zengge_connect = await self.hass.async_add_executor_job(create_zengge_connect_object, username, password)
             except Exception as e:
-                _LOGGER.error('Can not login to AwoX Smart Connect [%s]', e)
+                _LOGGER.error('Can not login to Magic Hue server [%s]', e)
                 errors[CONF_PASSWORD] = 'cannot_connect'
 
-        if user_input is None or awox_connect is None or errors:
+        if user_input is None or zengge_connect is None or errors:
             return self.async_show_form(
-                step_id="awox_connect",
+                step_id="zengge_connect",
                 data_schema=vol.Schema({
                     vol.Required(CONF_USERNAME, default=username): str,
                     vol.Required(CONF_PASSWORD, default=password): str,
@@ -149,7 +149,7 @@ class AwoxMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         devices = []
-        for device in await self.hass.async_add_executor_job(awox_connect.devices):
+        for device in await self.hass.async_add_executor_job(zengge_connect.devices):
             _LOGGER.debug('Processing device - %s', device)
             if 'type' not in device:
                 _LOGGER.warning('Skipped device, missing type - %s', device)
@@ -187,20 +187,20 @@ class AwoxMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if len(devices) == 0:
             return self.async_abort(reason="no_devices_found")
 
-        credentials = await self.hass.async_add_executor_job(awox_connect.credentials)
+        credentials = await self.hass.async_add_executor_job(zengge_connect.credentials)
 
         data = {
             CONF_MESH_NAME: credentials['client_id'],
             CONF_MESH_PASSWORD: credentials['access_token'],
             CONF_MESH_KEY: credentials['refresh_token'],
-            # 'awox_connect': {
+            # 'zengge_connect': {
             #     CONF_USERNAME: user_input[CONF_USERNAME],
             #     CONF_PASSWORD: user_input[CONF_PASSWORD]
             # },
             'devices': devices
         }
 
-        return self.async_create_entry(title='AwoX Smart Connect', data=data)
+        return self.async_create_entry(title='Zengge Smart Connect', data=data)
 
     async def async_step_mesh_info(self, user_input: Optional[Mapping] = None):
 
