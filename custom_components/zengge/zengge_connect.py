@@ -118,7 +118,7 @@ class ZenggeConnect:
             #response = requests.get(MAGICHUE_CONNECTURL + MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW, headers=headers)
             async with aiohttp.ClientSession() as session:
                 async with session.get(MAGICHUE_CONNECTURL + MAGICHUE_GET_MESH_DEVICES_ENDPOINTNEW, headers=headers) as response:
-                    if response.status_code != 200:
+                    if response.status != 200: #Previous code:   if response.status_code != 200:
                         raise Exception('Device retrieval for mesh failed - %s' % response.json()['error'])
                     else:
                         responseJSON = response.json()['result']
