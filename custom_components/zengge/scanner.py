@@ -11,7 +11,7 @@ from .bluetoothctl import Bluetoothctl
 
 _LOGGER = logging.getLogger(__name__)
 
-START_MAC_ADDRESS = "A4:C1"
+START_MAC_ADDRESS = "08:65"
 
 
 class DeviceScanner:
@@ -49,7 +49,7 @@ class DeviceScanner:
 
             await hass.async_add_executor_job(bl.stop_scan)
 
-            async with async_timeout.timeout(10):
+            async with async_timeout.timeout(30):
                 await hass.async_add_executor_job(bl.shutdown)
 
         except Exception as e:
