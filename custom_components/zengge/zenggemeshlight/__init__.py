@@ -18,6 +18,7 @@ import logging
 import struct
 import threading
 import time
+import math
 import subprocess
 
 # Commands :
@@ -57,11 +58,11 @@ C_POWER = 0xd0
 
 #: White temperature. one byte 0 to 0x7f
 #SN - Not used by Zengge
-#C_WHITE_TEMPERATURE = 0xf0
+C_WHITE_TEMPERATURE = 0xe2
 
 #: one byte 1 to 0x7f
 #SN - Not used by Zengge
-#C_WHITE_BRIGHTNESS = 0xf1
+C_WHITE_BRIGHTNESS = 0xd0
 
 #SN - Data: 4 bytes : [Change Mode] [Value1] [Value2] [Value3]
 #  Change mode of light (RGB, Warm, CCT/Lum, AuxLight, ColorTemp/Lum/AuxLight)
@@ -79,7 +80,7 @@ C_COLOR_CCTLUMAUX = 0x64
 
 #: one byte : 0xa to 0x64 ....
 #SN - Zengge does not use this opcode
-#C_COLOR_BRIGHTNESS = 0xf2
+C_COLOR_BRIGHTNESS = 0xd0
 
 #: Data 4 bytes : How long a color is displayed in a sequence in milliseconds as
 #:   an integer in little endian order
@@ -121,6 +122,65 @@ HARDWARE_REV_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(0x2A27)
 MODEL_NBR_UUID = "0000{0:x}-0000-1000-8000-00805f9b34fb".format(0x2A24)
 
 logger = logging.getLogger(__name__)
+
+def convert_value_to_available_range(value, min_from, max_from, min_to, max_to) -> int:
+    normalized = (value - min_from) / (max_from - min_from)
+    new_value = min(
+        round((normalized * (max_to - min_to)) + min_to),
+        max_to,
+    )
+    return max(new_value, min_to)
+
+
+def normal_round(n):
+    if n - math.floor(n) < 0.5:
+        return math.floor(n)
+    return math.ceil(n)
+
+
+def clamp(value, min_value, max_value):
+    return max(min_value, min(max_value, value))
+
+
+def saturate(value):
+    return clamp(value, 0.0, 1.0)
+
+
+def hue_to_rgb(h):
+    r = abs(h * 6.0 - 3.0) - 1.0
+    g = 2.0 - abs(h * 6.0 - 2.0)
+    b = 2.0 - abs(h * 6.0 - 4.0)
+    return saturate(r), saturate(g), saturate(b)
+
+
+def hsl_to_rgb(h, s=1, l=.5):
+    h = (h/360)
+    r, g, b = hue_to_rgb(h)
+    c = (1.0 - abs(2.0 * l - 1.0)) * s
+    r = round((r - 0.5) * c + l,4) * 255
+    g = round((g - 0.5) * c + l,4) * 255
+    b = round((b - 0.5) * c + l,4) * 255
+    if (r >= 250):
+        r = 255
+    if (g >= 250):
+        g = 255
+    if (b >= 250):
+        b = 255
+    return round(r), round(g), round(b)
+
+
+def h360_to_h255(h360):
+    if h360 <= 180:
+        return normal_round((h360*254)/360)
+    else:
+        return normal_round((h360*255)/360)
+
+
+def h255_to_h360(h255):
+    if h255 <= 128:
+        return normal_round((h255*360)/254)
+    else:
+        return normal_round((h255*360)/255)
 
 class ZenggeAdapter(pygatt.GATTToolBackend):
 
@@ -193,15 +253,14 @@ class ZenggeMeshLight:
         self.mesh_password = mesh_password.encode()
 
         # Light status
-        self.white_brightness = None
-        self.white_temperature = None
-        self.color_brightness = None
-        self.red = None
-        self.green = None
-        self.blue = None
-        self.color_mode = None
-        self.transition_mode = None
-        self.state = None
+        self.white_brightness = 1
+        self.white_temperature = 1
+        self.color_brightness = 1
+        self.red = 0
+        self.green = 0
+        self.blue = 0
+        self.color_mode = False
+        self.state = False
         self.status_callback = None
 
     def connect(self, mesh_name=None, mesh_password=None) -> bool:
@@ -386,39 +445,37 @@ class ZenggeMeshLight:
     def _parseStatusResult(self, data): ###THIS NEEDS MODIFIED FOR ZENGGE###
         command = struct.unpack('B', data[7:8])[0]
         status = {}
-        if command == C_GET_STATUS_RECEIVED:
-            mode = struct.unpack('B', data[10:11])[0]
-            mesh_id = (struct.unpack('B', data[4:5])[0] * 256) + struct.unpack('B', data[3:4])[0]
-            white_brightness, white_temperature = struct.unpack('BB', data[11:13])
-            color_brightness, red, green, blue = struct.unpack('BBBB', data[13:17])
+        if command == C_GET_STATUS_RECEIVED: #This does not return anything useful other than device is online/talking to mesh
+            mesh_id = struct.unpack('B', data[3:4])[0]
             status = {
                 'type': 'status',
                 'mesh_id': mesh_id,
-                'state': white_brightness != 0,
-                'color_mode': ((mode >> 1) & 1) == 1,
-                'transition_mode': ((mode >> 2) & 1) == 1,
-                'red': red,
-                'green': green,
-                'blue': blue,
-                'white_temperature': white_temperature,
-                'white_brightness': white_brightness,
-                'color_brightness': color_brightness,
+                'state': self.state,
+                'color_mode': self.color_mode,
+                'red': self.red,
+                'green': self.green,
+                'blue': self.blue,
+                'white_temperature': self.white_temperature,
+                'white_brightness': self.white_brightness,
+                'color_brightness': self.color_brightness,
             }
 
         if command == C_NOTIFICATION_RECEIVED:
             mesh_id = struct.unpack('B', data[10:11])[0] #Device ID should only be data[10:11]
             mode = struct.unpack('B', data[13:14])[0] #Mode is [13:14][0]
             white_brightness = struct.unpack('B', data[12:13])[0] #should be [12:13][0]
-            white_temperature = struct.unpack('B', data[12:13])[0] #should be [12:13][0]
-            color_brightness = struct.unpack('B', data[12:13])[0] #should be [13:14][0]
-            #red, green, blue = struct.unpack('B', data[14:15])[0] #Converts from 1 value(kelvin) to RGB
+            white_temperature = color = struct.unpack('B', data[14:15])[0] #should be [12:13][0]
+            color_brightness = white_brightness
+
+            if(mode == 63 or mode == 42):
+                color_mode = 'rgb'
+                red, green, blue = hsl_to_rgb(h255_to_h360(color)) #Converts from 1 value(kelvin) to RGB
 
             status = {
                 'type': 'notification',
                 'mesh_id': mesh_id,
                 'state': white_brightness != 0,
-                'color_mode': ((mode >> 1) & 1) == 1,
-                'transition_mode': ((mode >> 2) & 1) == 1,
+                'color_mode': color_mode,
                 'red': red,
                 'green': green,
                 'blue': blue,
@@ -436,7 +493,6 @@ class ZenggeMeshLight:
             logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
             self.state = status['state']
             self.color_mode = status['color_mode']
-            self.transition_mode = status['transition_mode']
             self.white_brightness = status['white_brightness']
             self.white_temperature = status['white_temperature']
             self.color_brightness = status['color_brightness']
@@ -447,10 +503,11 @@ class ZenggeMeshLight:
         if status and self.status_callback:
             self.status_callback(status)
 
-    def requestStatus(self, dest=None, withResponse=False):
+    def requestStatus(self, dest=0xffff, withResponse=False):
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] requestStatus({dest})')
-        data = struct.pack('B', 16)
-        return self.writeCommand(C_GET_STATUS_SENT, data, dest, withResponse)
+        data = struct.pack('B', 1)
+        return self.btdevice.char_write(STATUS_CHAR_UUID, b'\x01') #Zengge can't use Status request to receive device details, need notification request
+        # Previous code:  return self.writeCommand(C_GET_STATUS_SENT, data, dest, withResponse)
 
     def setColor(self, red, green, blue, dest=None):
         """
@@ -465,7 +522,7 @@ class ZenggeMeshLight:
         Args :
             brightness: a value between 0xa and 0x64 ...
         """
-        data = struct.pack('B', brightness)
+        data = struct.pack('BBB', 0x02 , brightness, 0x06)
         return self.writeCommand(C_COLOR_BRIGHTNESS, data, dest)
 
     def setSequenceColorDuration(self, duration, dest=None):
@@ -499,15 +556,15 @@ class ZenggeMeshLight:
         Args :
             brightness: between 1 and 0x7f
         """
-        data = struct.pack('B', brightness)
+        data = struct.pack('BBB', 0x02 , brightness, 0x06)
         return self.writeCommand(C_WHITE_BRIGHTNESS, data, dest)
 
     def setWhiteTemperature(self, temp, dest=None):
         """
         Args :
-            temp: between 0 and 0x7f
+            temp: between 0 and 0x64
         """
-        data = struct.pack('B', temp)
+        data = struct.pack('BBB', 0x62 , temp, self.white_brightness)
         return self.writeCommand(C_WHITE_TEMPERATURE, data, dest)
 
     def setWhite(self, temp, brightness, dest=None):
@@ -518,7 +575,7 @@ class ZenggeMeshLight:
         """
         data = struct.pack('B', temp)
         self.writeCommand(C_WHITE_TEMPERATURE, data, dest)
-        data = struct.pack('B', brightness)
+        data = struct.pack('BB', 0x02 , brightness)
         return self.writeCommand(C_WHITE_BRIGHTNESS, data, dest)
 
     def on(self, dest=None):
