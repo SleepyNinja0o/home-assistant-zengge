@@ -394,7 +394,7 @@ class ZenggeMeshLight:
             status = {
                 'type': 'status',
                 'mesh_id': mesh_id,
-                'state': (mode & 1) == 1,
+                'state': white_brightness != 0,
                 'color_mode': ((mode >> 1) & 1) == 1,
                 'transition_mode': ((mode >> 2) & 1) == 1,
                 'red': red,
@@ -406,15 +406,17 @@ class ZenggeMeshLight:
             }
 
         if command == C_NOTIFICATION_RECEIVED:
-            mesh_id = (struct.unpack('B', data[19:20])[0] * 256) + struct.unpack('B', data[10:11])[0]
-            mode = struct.unpack('B', data[12:13])[0]
-            white_brightness, white_temperature = struct.unpack('BB', data[13:15])
-            color_brightness, red, green, blue = struct.unpack('BBBB', data[15:19])
+            mesh_id = struct.unpack('B', data[10:11])[0] #Device ID should only be data[10:11]
+            mode = struct.unpack('B', data[13:14])[0] #Mode is [13:14][0]
+            white_brightness = struct.unpack('B', data[12:13])[0] #should be [12:13][0]
+            white_temperature = struct.unpack('B', data[12:13])[0] #should be [12:13][0]
+            color_brightness = struct.unpack('B', data[12:13])[0] #should be [13:14][0]
+            #red, green, blue = struct.unpack('B', data[14:15])[0] #Converts from 1 value(kelvin) to RGB
 
             status = {
                 'type': 'notification',
                 'mesh_id': mesh_id,
-                'state': (mode & 1) == 1,
+                'state': white_brightness != 0,
                 'color_mode': ((mode >> 1) & 1) == 1,
                 'transition_mode': ((mode >> 2) & 1) == 1,
                 'red': red,

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import math
 
 from .zengge_mesh import ZenggeMesh
 from typing import Any, Dict, Optional
@@ -79,13 +80,63 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     async_add_entities(lights)
 
 def convert_value_to_available_range(value, min_from, max_from, min_to, max_to) -> int:
-
     normalized = (value - min_from) / (max_from - min_from)
     new_value = min(
         round((normalized * (max_to - min_to)) + min_to),
         max_to,
     )
     return max(new_value, min_to)
+
+
+def normal_round(n):
+    if n - math.floor(n) < 0.5:
+        return math.floor(n)
+    return math.ceil(n)
+
+
+def clamp(value, min_value, max_value):
+    return max(min_value, min(max_value, value))
+
+
+def saturate(value):
+    return clamp(value, 0.0, 1.0)
+
+
+def hue_to_rgb(h):
+    r = abs(h * 6.0 - 3.0) - 1.0
+    g = 2.0 - abs(h * 6.0 - 2.0)
+    b = 2.0 - abs(h * 6.0 - 4.0)
+    return saturate(r), saturate(g), saturate(b)
+
+
+def hsl_to_rgb(h, s=1, l=.5):
+    h = (h/360)
+    r, g, b = hue_to_rgb(h)
+    c = (1.0 - abs(2.0 * l - 1.0)) * s
+    r = round((r - 0.5) * c + l,4) * 255
+    g = round((g - 0.5) * c + l,4) * 255
+    b = round((b - 0.5) * c + l,4) * 255
+    if (r >= 250):
+        r = 255
+    if (g >= 250):
+        g = 255
+    if (b >= 250):
+        b = 255
+    return round(r), round(g), round(b)
+
+
+def h360_to_h255(h360):
+    if h360 <= 180:
+        return normal_round((h360*254)/360)
+    else:
+        return normal_round((h360*255)/360)
+
+
+def h255_to_h360(h255):
+    if h255 <= 128:
+        return normal_round((h255*360)/254)
+    else:
+        return normal_round((h255*360)/255)
 
 
 class ZenggeLight(CoordinatorEntity, LightEntity):
@@ -165,7 +216,7 @@ class ZenggeLight(CoordinatorEntity, LightEntity):
         """Return the color temperature in mired."""
         if self._white_temperature is None:
             return None
-        return convert_value_to_available_range(self._white_temperature, 0, int(0x7f), self.min_mireds, self.max_mireds)
+        return convert_value_to_available_range(self._white_temperature, 0, int(0x64), self.min_mireds, self.max_mireds)
 
     @property
     def brightness(self):
@@ -173,12 +224,12 @@ class ZenggeLight(CoordinatorEntity, LightEntity):
         if self.color_mode != ColorMode.RGB:
             if self._white_brightness is None:
                 return None
-            return convert_value_to_available_range(self._white_brightness, int(1), int(0x7f), 0, 255)
+            return convert_value_to_available_range(self._white_brightness, int(1), int(0x64), 0, 255)
 
         if self._color_brightness is None:
             return None
 
-        return convert_value_to_available_range(self._color_brightness, int(0xa), int(0x64), 0, 255)
+        return convert_value_to_available_range(self._color_brightness, int(1), int(0x64), 0, 255)
 
     @property
     def min_mireds(self):
@@ -212,11 +263,11 @@ class ZenggeLight(CoordinatorEntity, LightEntity):
         if ATTR_BRIGHTNESS in kwargs:
             status['state'] = True
             if self.color_mode != ColorMode.RGB:
-                device_brightness = convert_value_to_available_range(kwargs[ATTR_BRIGHTNESS], 0, 255, int(1), int(0x7f))
+                device_brightness = convert_value_to_available_range(kwargs[ATTR_BRIGHTNESS], 0, 255, int(1), int(0x64))
                 await self._mesh.async_set_white_brightness(self._mesh_id, device_brightness)
                 status['white_brightness'] = device_brightness
             else:
-                device_brightness = convert_value_to_available_range(kwargs[ATTR_BRIGHTNESS], 0, 255, int(0xa), int(0x64))
+                device_brightness = convert_value_to_available_range(kwargs[ATTR_BRIGHTNESS], 0, 255, int(0x1), int(0x64))
                 await self._mesh.async_set_color_brightness(self._mesh_id, device_brightness)
                 status['color_brightness'] = device_brightness
 
