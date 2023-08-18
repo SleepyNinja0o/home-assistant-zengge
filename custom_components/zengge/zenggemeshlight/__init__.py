@@ -226,7 +226,9 @@ class ZenggeMeshLight:
         logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Send pair message {message}')
         self.btdevice.char_write(PAIR_CHAR_UUID, message)
 
-        reply = self.btdevice.char_read_handle('1b')
+        #reply = self.btdevice.char_read_handle('1b')
+        reply = bytearray(self.btdevice.char_read(PAIR_CHAR_UUID))
+        #reply = self.btdevice.char_read(PAIR_CHAR_UUID)
         logger.debug(f"[{self.mesh_name.decode()}][{self.mac}] Read {reply} from characteristic {PAIR_CHAR_UUID}")
 
         if reply[0] == 0xd:
