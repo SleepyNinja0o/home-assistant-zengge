@@ -119,7 +119,7 @@ class ZenggeMesh(DataUpdateCoordinator):
 
         if self._state['last_rssi_check'] is None:
             try:
-                async with async_timeout.timeout(120):
+                async with async_timeout.timeout(60):
                     # Scan for devices and get try to determine there RSSI
                     await self._async_get_devices_rssi()
             except Exception as e:

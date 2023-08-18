@@ -168,7 +168,7 @@ class ZenggeDevice(GATTToolBLEDevice):
         return self._connected
 
 class ZenggeMeshLight:
-    def __init__(self, mac, mesh_name="unpaired", mesh_password="1234", mesh_id=0):
+    def __init__(self, mac, mesh_name="ZenggeMesh", mesh_password="ZenggeTechnology", mesh_id=0):
         """
         Args :
             mac: The light's MAC address as a string in the form AA:BB:CC:DD:EE:FF
