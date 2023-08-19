@@ -1,5 +1,5 @@
 # Zengge Mesh Control Component for Home Assistant
-![alt text](https://github.com/SleepyNinja0o/home-assistant-zengge/blob/main/images/HD_icon.png)<br/>
+![alt text](https://github.com/SleepyNinja0o/home-assistant-zengge/blob/main/images/icon.png)<br/>
 <br/>
 Control your Zengge bluetooth lights from Home Assistant!
 
