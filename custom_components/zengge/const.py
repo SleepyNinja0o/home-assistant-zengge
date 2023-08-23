@@ -1,6 +1,6 @@
 """Constants for the Zengge integration."""
 
-DOMAIN = 'zengge'
+DOMAIN = 'zenggemesh'
 
 CONF_MESH_NAME = 'mesh_name'
 CONF_MESH_PASSWORD = 'mesh_password'
