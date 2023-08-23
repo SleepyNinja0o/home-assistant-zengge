@@ -1,12 +1,12 @@
 {
-  "title": "AwoX Mesh lights",
+  "title": "Zengge Mesh lights",
   "config": {
     "step": {
       "confirm": {
         "description": "[%key:common::config_flow::description::confirm_setup%]"
       },
       "mesh_info": {
-        "title": "AwoX Mesh credentials",
+        "title": "Zengge Mesh credentials",
         "description": "Provide the credentials to connect to your lights",
         "data": {
           "mesh_name": "Mesh user name",
@@ -18,13 +18,13 @@
         "title": "Add mac address",
         "description": "Scan failed, place check documentation about scanning locally and fill here the device address",
         "data": {
-          "mac": "Mac address of AwoX light",
+          "mac": "Mac address of Zengge light",
           "name": "Device name"
         }
       },
-      "awox_connect": {
-        "title": "Connect to AwoX Connect",
-        "description": "Provide the credentials you use in the AwoX Smart Control app",
+      "zengge_connect": {
+        "title": "Connect to Zengge Connect",
+        "description": "Provide the credentials you use in the Zengge Smart Control app",
         "data": {
           "username": "Username (email)",
           "password": "Password"
@@ -34,7 +34,7 @@
         "title": "Select mac address",
         "description": "",
         "data": {
-          "mac": "Mac address of AwoX light",
+          "mac": "Mac address of Zengge light",
           "name": "Device name"
         }
       }
