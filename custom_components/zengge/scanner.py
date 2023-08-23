@@ -11,7 +11,7 @@ from .bluetoothctl import Bluetoothctl
 
 _LOGGER = logging.getLogger(__name__)
 
-START_MAC_ADDRESS = "08:65"
+START_MAC_ADDRESS = "08:65:F0"
 
 
 class DeviceScanner:
