@@ -5,7 +5,6 @@ import logging
 
 from homeassistant.core import HomeAssistant
 from .zenggemeshlight import ZenggeMeshLight
-# import zenggemeshlight from .zenggemeshlight
 from .bluetoothctl import Bluetoothctl
 
 

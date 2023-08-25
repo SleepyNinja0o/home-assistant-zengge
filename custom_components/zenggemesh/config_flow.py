@@ -6,6 +6,9 @@ import pygatt
 
 import voluptuous as vol
 
+from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.components import bluetooth
 from homeassistant import config_entries
 from homeassistant.const import (
     CONF_USERNAME,
@@ -36,8 +39,11 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._mesh_info: Optional[Mapping] = None
 
     async def async_step_user(self, user_input: Optional[Mapping] = None):
-
-        return await self.async_step_zengge_connect()
+        _LOGGER.info('Testing stuff here...')
+        ble_device = bluetooth.async_ble_device_from_address(self.hass, "08:65:F0:05:1F:D6")
+        _LOGGER.info('Object: '+repr(dir(ble_device)))
+        return
+        #return await self.async_step_zengge_connect()
 
         # todo: fix manual connect
         _LOGGER.debug("async_step_user: user_input: %s", user_input)
@@ -127,6 +133,7 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         password: str = ''
         typeStr: str = ''
         zengge_connect = None
+
 
         if user_input is not None:
             username = user_input.get(CONF_USERNAME)
