@@ -11,7 +11,7 @@ from .bluetoothctl import Bluetoothctl
 
 _LOGGER = logging.getLogger(__name__)
 
-START_MAC_ADDRESS = "08:65:F0"
+ZENGGE_MAC_OUI = "08:65:F0"
 
 
 class DeviceScanner:
@@ -42,7 +42,7 @@ class DeviceScanner:
             await asyncio.sleep(scan_timeout)
 
             for mac, dev in (await hass.async_add_executor_job(bl.get_available_devices)).items():
-                if mac.startswith(START_MAC_ADDRESS):
+                if mac.startswith(ZENGGE_MAC_OUI):
                     devices[mac] = dev
 
             _LOGGER.debug('Found devices: %s', devices)
