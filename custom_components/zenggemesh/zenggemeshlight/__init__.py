@@ -182,6 +182,12 @@ def h255_to_h360(h255):
     else:
         return normal_round((h255*360)/255)
 
+
+def decode_color(color):
+	red, green, blue = hsl_to_rgb(h255_to_h360(color))
+	return red, green, blue
+
+
 class ZenggeAdapter(pygatt.GATTToolBackend):
 
     def connect(self, address, timeout=DEFAULT_CONNECT_TIMEOUT_S,
