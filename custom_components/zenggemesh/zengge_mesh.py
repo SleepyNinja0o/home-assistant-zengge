@@ -10,6 +10,7 @@ import homeassistant.util.dt as dt_util
 from datetime import timedelta
 from homeassistant.core import HomeAssistant, callback, CALLBACK_TYPE
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, EVENT_HOMEASSISTANT_STOP
+from homeassistant.components import bluetooth
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 # import zenggemeshlight from .zenggemeshlight
@@ -379,8 +380,8 @@ class ZenggeMesh(DataUpdateCoordinator):
 
         self._scanning_devices = True
 
-        devices = await DeviceScanner.async_find_devices(hass=self.hass, scan_timeout=20)
-
+        #devices = await DeviceScanner.async_find_devices(hass=self.hass, scan_timeout=20)
+        devices = bluetooth.async_get_scanner(hass).discover(timeout=10)
         _LOGGER.debug(f'[{self.mesh_name}] Scan result: {devices}')
 
         for mesh_id, device_info in self._devices.items():
