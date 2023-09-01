@@ -5,14 +5,16 @@ from __future__ import unicode_literals
 import binascii
 from abc import ABC
 
-from pygatt import BLEAddressType
-from pygatt.backends.backend import DEFAULT_CONNECT_TIMEOUT_S
-from pygatt.backends.gatttool.device import GATTToolBLEDevice
-from pygatt.exceptions import NotificationTimeout, NotConnectedError
+#from pygatt import BLEAddressType
+#from pygatt.backends.backend import DEFAULT_CONNECT_TIMEOUT_S
+#from pygatt.backends.gatttool.device import GATTToolBLEDevice
+#from pygatt.exceptions import NotificationTimeout, NotConnectedError
+from bleak import BleakScanner, BleakClient
 
 from . import packetutils as pckt
 
 from os import urandom
+import asyncio
 import pygatt
 import logging
 import struct
@@ -184,11 +186,10 @@ def h255_to_h360(h255):
 
 
 def decode_color(color):
-	red, green, blue = hsl_to_rgb(h255_to_h360(color))
-	return red, green, blue
+	return hsl_to_rgb(h255_to_h360(color))
 
 
-class ZenggeAdapter(pygatt.GATTToolBackend):
+'''class ZenggeAdapter(pygatt.GATTToolBackend):
 
     def connect(self, address, timeout=DEFAULT_CONNECT_TIMEOUT_S,
                 address_type=BLEAddressType.public, _reconnecting=False):
@@ -231,10 +232,10 @@ class ZenggeDevice(GATTToolBLEDevice):
 
     @property
     def connected(self) -> bool:
-        return self._connected
+        return self._connected'''
 
 class ZenggeMeshLight:
-    def __init__(self, mac, mesh_name="ZenggeMesh", mesh_password="ZenggeTechnology", mesh_id=0):
+    def __init__(self, mac, mesh_name="ZenggeMesh", mesh_password="ZenggeTechnology", mesh_id=0x0211):
         """
         Args :
             mac: The light's MAC address as a string in the form AA:BB:CC:DD:EE:FF
@@ -244,7 +245,7 @@ class ZenggeMeshLight:
         """
         self.mac = mac
         self.mesh_id = mesh_id
-        self.adapter = None
+        self.client = None
         self.btdevice = None
         self.session_key = None
 
@@ -253,7 +254,6 @@ class ZenggeMeshLight:
 
         self._reconnecting = False
         self.reconnect_counter = 0
-        self.adapter = ZenggeAdapter()
 
         self.mesh_name = mesh_name.encode()
         self.mesh_password = mesh_password.encode()
@@ -269,7 +269,35 @@ class ZenggeMeshLight:
         self.state = False
         self.status_callback = None
 
-    def connect(self, mesh_name=None, mesh_password=None) -> bool:
+    async def enable_notify(self): #Huge thanks to 'cocoto' for helping me figure out this issue with Zengge!!
+        await self.send_packet(0x01,bytes([]),self.mesh_id,uuid=STATUS_CHAR_UUID)
+        print("Enable notify packet sent...")
+        await self.client.start_notify(STATUS_CHAR_UUID, self._handleNotification)
+
+    async def send_packet(self, command, data, dest=None, withResponse=True, attempt=0, uuid=COMMAND_CHAR_UUID):
+        """
+        Args:
+            command: The command, as a number.
+            data: The parameters for the command, as bytes.
+            dest: The destination mesh id, as a number. If None, this lightbulb's
+                mesh id will be used.
+        """
+        assert (self.sk)
+        if dest == None: dest = self.mesh_id
+        packet = pckt.make_command_packet(self.sk, self.mac, dest, command, data)
+        try:
+            print(f'[{self.mesh_name}][{self.mac}] Writing command {command} data {repr(data)}')
+            return await self.client.write_gatt_char(uuid, packet)
+        except Exception as err:
+            print(f'[{self.mesh_name}][{self.mac}] Command failed, attempt: {attempt} - [{type(err).__name__}] {err}')
+            if attempt < 2:
+                self.connect()
+                return self.send_packet(command, data, dest, withResponse, attempt+1)
+            else:
+                self.sk = None
+                raise err
+
+    async def connect(self, mesh_name=None, mesh_password=None) -> bool:
         """
         Args :
             mesh_name: The mesh name as a string.
@@ -281,19 +309,23 @@ class ZenggeMeshLight:
         assert len(self.mesh_name) <= 16, "mesh_name can hold max 16 bytes"
         assert len(self.mesh_password) <= 16, "mesh_password can hold max 16 bytes"
 
-        self.adapter.start()
-        self.btdevice = self.adapter.connect(self.mac, timeout=15)
-        self.btdevice.register_disconnect_callback(self._disconnectCallback)
+        #self.adapter.start()
+        #self.btdevice = self.adapter.connect(self.mac, timeout=15)
+        #self.btdevice.register_disconnect_callback(self._disconnectCallback)
+        self.client = BleakClient(self.mac, timeout=15, disconnected_callback=self._disconnectCallback)
+        await self.client.connect()
 
         session_random = urandom(8)
         message = pckt.make_pair_packet(self.mesh_name, self.mesh_password, session_random)
 
         logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Send pair message {message}')
-        self.btdevice.char_write(PAIR_CHAR_UUID, message)
+        #self.btdevice.char_write(PAIR_CHAR_UUID, message)
+        self.client.write_gatt_char(PAIR_CHAR_UUID, message)
 
         #reply = self.btdevice.char_read_handle('1b')
-        reply = bytearray(self.btdevice.char_read(PAIR_CHAR_UUID))
+        #reply = bytearray(self.btdevice.char_read(PAIR_CHAR_UUID))
         #reply = self.btdevice.char_read(PAIR_CHAR_UUID)
+        reply = self.client.read_gatt_char(PAIR_CHAR_UUID)
         logger.debug(f"[{self.mesh_name.decode()}][{self.mac}] Read {reply} from characteristic {PAIR_CHAR_UUID}")
 
         if reply[0] == 0xd:
@@ -308,10 +340,13 @@ class ZenggeMeshLight:
 
 
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Listen for notifications')
-        self.btdevice.subscribe(STATUS_CHAR_UUID, callback=self._handleNotification)
+        #self.btdevice.subscribe(STATUS_CHAR_UUID, callback=self._handleNotification)
+        #self.start_notify()
+        self.client.start_notify()
 
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Send status message')
-        self.btdevice.char_write(STATUS_CHAR_UUID, b'\x01')
+        #self.btdevice.char_write(STATUS_CHAR_UUID, b'\x01')
+        self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01')
 
         return True
 
@@ -333,7 +368,7 @@ class ZenggeMeshLight:
             except Exception as err:
                 self.reconnect_counter += 1
                 logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Failed to reconnect attempt {self.reconnect_counter} [{type(err).__name__}] {err}')
-                time.sleep(1)
+                asyncio.sleep(1)
 
         self._reconnecting = False
 
@@ -342,7 +377,7 @@ class ZenggeMeshLight:
         if not self.is_connected:
             self.stop()
 
-    def setMesh(self, new_mesh_name, new_mesh_password, new_mesh_long_term_key):
+    async def setMesh(self, new_mesh_name, new_mesh_password, new_mesh_long_term_key):
         """
         Sets or changes the mesh network settings.
 
@@ -358,29 +393,28 @@ class ZenggeMeshLight:
         assert len(new_mesh_name.encode()) <= 16, "new_mesh_name can hold max 16 bytes"
         assert len(new_mesh_password.encode()) <= 16, "new_mesh_password can hold max 16 bytes"
         assert len(new_mesh_long_term_key.encode()) <= 16, "new_mesh_long_term_key can hold max 16 bytes"
-
+        if self.session_key is None:
+            print("BLE device is not connected!")
+            self.mac = input('Please enter MAC of device:')
+            self.connect()
         message = pckt.encrypt(self.session_key, new_mesh_name.encode())
         message.insert(0, 0x4)
-        self.btdevice.char_write(PAIR_CHAR_UUID, message, wait_for_response=True)
-
+        await self.client.write_gatt_char(PAIR_CHAR_UUID, message)
         message = pckt.encrypt(self.session_key, new_mesh_password.encode())
         message.insert(0, 0x5)
-        self.btdevice.char_write(PAIR_CHAR_UUID, message, wait_for_response=True)
-
+        await self.client.write_gatt_char(PAIR_CHAR_UUID, message)
         message = pckt.encrypt(self.session_key, new_mesh_long_term_key.encode())
         message.insert(0, 0x6)
-        self.btdevice.char_write(PAIR_CHAR_UUID, message, wait_for_response=True)
-
-        time.sleep(1)
-        reply = bytearray(self.btdevice.char_read(PAIR_CHAR_UUID))
-
+        await self.client.write_gatt_char(PAIR_CHAR_UUID, message)
+        asyncio.sleep(1)
+        reply = bytearray(await self.client.read_gatt_char(PAIR_CHAR_UUID))
         if reply[0] == 0x7:
-            self.mesh_name = new_mesh_name.encode()
-            self.mesh_password = new_mesh_password.encode()
-            logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Mesh network settings accepted.')
+            self.mesh_name = new_mesh_name
+            self.mesh_pass = new_mesh_password
+            print(f'[{self.mesh_name}]-[{self.mesh_pass}]-[{self.mac}] Mesh network settings accepted.')
             return True
         else:
-            logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Mesh network settings change failed : {repr(reply)}')
+            print(f'[{self.mesh_name}][{self.mac}] Mesh network settings change failed : {repr(reply)}')
             return False
 
     def setMeshId(self, mesh_id):
@@ -594,10 +628,10 @@ class ZenggeMeshLight:
         """
         return self.writeCommand(C_POWER, b'\x00', dest)
 
-    def reconnect(self) -> bool:
+    async def reconnect(self) -> bool:
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Reconnecting')
         self.session_key = None
-        return self.connect()
+        return await self.connect()
 
     def disconnect(self):
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Disconnecting')
@@ -605,8 +639,9 @@ class ZenggeMeshLight:
         self._reconnecting = False
 
         try:
-            self.btdevice.disconnect()
-            self.adapter.stop()
+            #self.btdevice.disconnect()
+            #self.adapter.stop()
+            self.client.disconnect()
         except Exception as err:
             logger.warning(f'[{self.mesh_name.decode()}][{self.mac}] Disconnect failed: [{type(err).__name__}] {err}')
             self.stop()
@@ -618,7 +653,8 @@ class ZenggeMeshLight:
         self.session_key = None
 
         try:
-            self.adapter.stop()
+            #self.adapter.stop()
+            self.client.disconnect()
         except Exception as err:
             logger.warning(f'[{self.mesh_name.decode()}][{self.mac}] Stop failed: [{type(err).__name__}] {err}')
 

@@ -381,7 +381,7 @@ class ZenggeMesh(DataUpdateCoordinator):
         self._scanning_devices = True
 
         #devices = await DeviceScanner.async_find_devices(hass=self.hass, scan_timeout=20)
-        devices = bluetooth.async_get_scanner(hass).discover(timeout=10)
+        devices = bluetooth.async_get_scanner(self.hass).discover(timeout=15,return_adv=True)
         _LOGGER.debug(f'[{self.mesh_name}] Scan result: {devices}')
 
         for mesh_id, device_info in self._devices.items():
