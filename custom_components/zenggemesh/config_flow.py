@@ -40,8 +40,10 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: Optional[Mapping] = None):
         _LOGGER.info('Testing stuff here...')
-        ble_device = bluetooth.async_ble_device_from_address(self.hass, "08:65:F0:05:1F:D6")
+        ble_device = bluetooth.async_get_scanner(self.hass).discover(timeout=15,return_adv=True)
+        #ble_device = bluetooth.async_ble_device_from_address(self.hass, "08:65:F0:05:1F:D6")
         _LOGGER.info('Object: '+repr(dir(ble_device)))
+        _LOGGER.info('Object Raw: '+repr(ble_device))
         return
         #return await self.async_step_zengge_connect()
 
