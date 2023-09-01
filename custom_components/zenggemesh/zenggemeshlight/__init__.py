@@ -246,7 +246,7 @@ class ZenggeMeshLight:
         self.mac = mac
         self.mesh_id = mesh_id
         self.client = None
-        self.btdevice = None
+        #self.btdevice = None
         self.session_key = None
 
         self.command_char = None
@@ -273,6 +273,28 @@ class ZenggeMeshLight:
         await self.send_packet(0x01,bytes([]),self.mesh_id,uuid=STATUS_CHAR_UUID)
         print("Enable notify packet sent...")
         await self.client.start_notify(STATUS_CHAR_UUID, self._handleNotification)
+
+    async def mesh_login(self):
+        if self.client == None:
+            return
+        session_random = urandom(8)
+        message = pckt.make_pair_packet(self.mesh_name.encode(), self.mesh_pass.encode(), session_random)
+        logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Send pair message {message}')
+        pairReply = await self.client.write_gatt_char(PAIR_CHAR_UUID, bytes(message), True)
+        await asyncio.sleep(0.3)
+        reply = await self.client.read_gatt_char(PAIR_CHAR_UUID)
+        logger.debug(f"[{self.mesh_name.decode()}][{self.mac}] Read {reply} from characteristic {PAIR_CHAR_UUID}")
+
+        self.session_key = pckt.make_session_key(self.mesh_name.encode(), self.mesh_pass.encode(), session_random, reply[1:9])
+        if reply[0] == 0xd:
+            self.session_key = pckt.make_session_key(self.mesh_name, self.mesh_password, session_random, reply[1:9])
+        else:
+            if reply[0] == 0xe:
+                logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Device authentication error: known mesh credentials are not excepted by the device. Did you re-pair them to your Hao Deng app with a different account?')
+            else:
+                logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Unexpected pair value : {repr(reply)}')
+            self.disconnect()
+            return False
 
     async def send_packet(self, command, data, dest=None, withResponse=True, attempt=0, uuid=COMMAND_CHAR_UUID):
         """
@@ -315,29 +337,27 @@ class ZenggeMeshLight:
         self.client = BleakClient(self.mac, timeout=15, disconnected_callback=self._disconnectCallback)
         await self.client.connect()
 
-        session_random = urandom(8)
-        message = pckt.make_pair_packet(self.mesh_name, self.mesh_password, session_random)
-
-        logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Send pair message {message}')
+        #session_random = urandom(8)
+        #message = pckt.make_pair_packet(self.mesh_name, self.mesh_password, session_random)
+        #logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Send pair message {message}')
         #self.btdevice.char_write(PAIR_CHAR_UUID, message)
-        self.client.write_gatt_char(PAIR_CHAR_UUID, message)
-
+        #await self.client.write_gatt_char(PAIR_CHAR_UUID, message)
         #reply = self.btdevice.char_read_handle('1b')
         #reply = bytearray(self.btdevice.char_read(PAIR_CHAR_UUID))
         #reply = self.btdevice.char_read(PAIR_CHAR_UUID)
-        reply = self.client.read_gatt_char(PAIR_CHAR_UUID)
-        logger.debug(f"[{self.mesh_name.decode()}][{self.mac}] Read {reply} from characteristic {PAIR_CHAR_UUID}")
+        #reply = await self.client.read_gatt_char(PAIR_CHAR_UUID)
+        #logger.debug(f"[{self.mesh_name.decode()}][{self.mac}] Read {reply} from characteristic {PAIR_CHAR_UUID}")
+        self.mesh_login()
 
-        if reply[0] == 0xd:
-            self.session_key = pckt.make_session_key(self.mesh_name, self.mesh_password, session_random, reply[1:9])
-        else:
-            if reply[0] == 0xe:
-                logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Device authentication error: known mesh credentials are not excepted by the device. Did you re-pair them to your Hao Deng app with a different account?')
-            else:
-                logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Unexpected pair value : {repr(reply)}')
-            self.disconnect()
-            return False
-
+        #if reply[0] == 0xd:
+        #    self.session_key = pckt.make_session_key(self.mesh_name, self.mesh_password, session_random, reply[1:9])
+        #else:
+        #    if reply[0] == 0xe:
+        #        logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Device authentication error: known mesh credentials are not excepted by the device. Did you re-pair them to your Hao Deng app with a different account?')
+        #    else:
+        #        logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Unexpected pair value : {repr(reply)}')
+        #    self.disconnect()
+        #    return False
 
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Listen for notifications')
         #self.btdevice.subscribe(STATUS_CHAR_UUID, callback=self._handleNotification)
@@ -443,7 +463,8 @@ class ZenggeMeshLight:
 
         try:
             logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Writing command {command} data {repr(data)}')
-            self.btdevice.char_write(uuid=COMMAND_CHAR_UUID, value=packet, wait_for_response=withResponse)
+            #self.btdevice.char_write(uuid=COMMAND_CHAR_UUID, value=packet, wait_for_response=withResponse)
+            self.client.write_gatt_char(COMMAND_CHAR_UUID,packet, True)
             return True
         except (NotConnectedError, NotificationTimeout) as err:
             logger.warning(f'[{self.mesh_name.decode()}][{self.mac}] Command failed, attempt: {attempt} - [{type(err).__name__}] {err}')
@@ -545,9 +566,8 @@ class ZenggeMeshLight:
 
     def requestStatus(self, dest=0xffff, withResponse=False):
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] requestStatus({dest})')
-        data = struct.pack('B', 1)
-        return self.btdevice.char_write(STATUS_CHAR_UUID, b'\x01') #Zengge can't use Status request to receive device details, need notification request
-        # Previous code:  return self.writeCommand(C_GET_STATUS_SENT, data, dest, withResponse)
+        #return self.btdevice.char_write(STATUS_CHAR_UUID, b'\x01') #Zengge can't use Status request to receive device details, need notification request
+        return self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01') #Zengge can't use Status request to receive device details, need notification request
 
     def setColor(self, red, green, blue, dest=None):
         """
@@ -663,21 +683,24 @@ class ZenggeMeshLight:
         Returns :
             The firmware version as a null terminated utf-8 string.
         """
-        return self.btdevice.char_read(uuid=FIRMWARE_REV_UUID)
+        #return self.btdevice.char_read(uuid=FIRMWARE_REV_UUID)
+        return self.client.read_gatt_char(FIRMWARE_REV_UUID)
 
     def getHardwareRevision(self):
         """
         Returns :
             The hardware version as a null terminated utf-8 string.
         """
-        return self.btdevice.char_read(uuid=HARDWARE_REV_UUID)
+        #return self.btdevice.char_read(uuid=HARDWARE_REV_UUID)
+        return self.client.read_gatt_char(HARDWARE_REV_UUID)
 
     def getModelNumber(self):
         """
         Returns :
             The model as a null terminated utf-8 string.
         """
-        return self.btdevice.char_read(uuid=MODEL_NBR_UUID)
+        #return self.btdevice.char_read(uuid=MODEL_NBR_UUID)
+        return self.client.read_gatt_char(MODEL_NBR_UUID)
 
     @property
     def is_connected(self) -> bool:
