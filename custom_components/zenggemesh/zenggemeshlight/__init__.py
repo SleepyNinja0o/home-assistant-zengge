@@ -2,26 +2,23 @@
 
 from __future__ import unicode_literals
 
-import binascii
-from abc import ABC
+#import binascii
+#from abc import ABC
 
 #from pygatt import BLEAddressType
 #from pygatt.backends.backend import DEFAULT_CONNECT_TIMEOUT_S
 #from pygatt.backends.gatttool.device import GATTToolBLEDevice
 #from pygatt.exceptions import NotificationTimeout, NotConnectedError
-from bleak import BleakScanner, BleakClient
+from bleak import BleakClient #, BleakScanner
 
 from . import packetutils as pckt
 
 from os import urandom
 import asyncio
-import pygatt
 import logging
 import struct
 import threading
-import time
 import math
-import subprocess
 
 # Commands :
 
@@ -188,52 +185,6 @@ def h255_to_h360(h255):
 def decode_color(color):
 	return hsl_to_rgb(h255_to_h360(color))
 
-
-'''class ZenggeAdapter(pygatt.GATTToolBackend):
-
-    def connect(self, address, timeout=DEFAULT_CONNECT_TIMEOUT_S,
-                address_type=BLEAddressType.public, _reconnecting=False):
-        logger.info('Connecting to %s with timeout=%s', address, timeout)
-        self.sendline('sec-level low')
-        self._address = address
-        self.__reconnecting = _reconnecting
-
-        try:
-            cmd = 'connect {0} {1}'.format(self._address, address_type.name)
-            with self._receiver.event("connect", timeout):
-                self.sendline(cmd)
-        except NotificationTimeout:
-            message = "Timed out connecting to {0} after {1} seconds.".format(
-                self._address, timeout
-            )
-            logger.error(message)
-            raise NotConnectedError(message)
-
-        self._connected_device = ZenggeDevice(address, self)
-        return self._connected_device
-
-    def reset(self):
-        # skip resetting
-        return
-
-class ZenggeDevice(GATTToolBLEDevice):
-
-    def __init__(self, address, backend):
-        super(ZenggeDevice, self).__init__(address, backend)
-
-    def _notification_handles(self, uuid):
-        # Expect notifications on the value handle...
-        value_handle = self.get_handle(uuid)
-
-        # Zengge/Eglo devices use the same handle to read/write and trigger notifications
-        characteristic_config_handle = value_handle
-
-        return value_handle, characteristic_config_handle
-
-    @property
-    def connected(self) -> bool:
-        return self._connected'''
-
 class ZenggeMeshLight:
     def __init__(self, mac, mesh_name="ZenggeMesh", mesh_password="ZenggeTechnology", mesh_id=0x0211):
         """
@@ -246,7 +197,6 @@ class ZenggeMeshLight:
         self.mac = mac
         self.mesh_id = mesh_id
         self.client = None
-        #self.btdevice = None
         self.session_key = None
 
         self.command_char = None
@@ -304,9 +254,9 @@ class ZenggeMeshLight:
             dest: The destination mesh id, as a number. If None, this lightbulb's
                 mesh id will be used.
         """
-        assert (self.sk)
+        assert (self.session_key)
         if dest == None: dest = self.mesh_id
-        packet = pckt.make_command_packet(self.sk, self.mac, dest, command, data)
+        packet = pckt.make_command_packet(self.session_key, self.mac, dest, command, data)
         try:
             print(f'[{self.mesh_name}][{self.mac}] Writing command {command} data {repr(data)}')
             return await self.client.write_gatt_char(uuid, packet)
@@ -316,7 +266,7 @@ class ZenggeMeshLight:
                 self.connect()
                 return self.send_packet(command, data, dest, withResponse, attempt+1)
             else:
-                self.sk = None
+                self.session_key = None
                 raise err
 
     async def connect(self, mesh_name=None, mesh_password=None) -> bool:
@@ -331,43 +281,15 @@ class ZenggeMeshLight:
         assert len(self.mesh_name) <= 16, "mesh_name can hold max 16 bytes"
         assert len(self.mesh_password) <= 16, "mesh_password can hold max 16 bytes"
 
-        #self.adapter.start()
-        #self.btdevice = self.adapter.connect(self.mac, timeout=15)
-        #self.btdevice.register_disconnect_callback(self._disconnectCallback)
         self.client = BleakClient(self.mac, timeout=15, disconnected_callback=self._disconnectCallback)
         await self.client.connect()
-
-        #session_random = urandom(8)
-        #message = pckt.make_pair_packet(self.mesh_name, self.mesh_password, session_random)
-        #logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Send pair message {message}')
-        #self.btdevice.char_write(PAIR_CHAR_UUID, message)
-        #await self.client.write_gatt_char(PAIR_CHAR_UUID, message)
-        #reply = self.btdevice.char_read_handle('1b')
-        #reply = bytearray(self.btdevice.char_read(PAIR_CHAR_UUID))
-        #reply = self.btdevice.char_read(PAIR_CHAR_UUID)
-        #reply = await self.client.read_gatt_char(PAIR_CHAR_UUID)
-        #logger.debug(f"[{self.mesh_name.decode()}][{self.mac}] Read {reply} from characteristic {PAIR_CHAR_UUID}")
         self.mesh_login()
 
-        #if reply[0] == 0xd:
-        #    self.session_key = pckt.make_session_key(self.mesh_name, self.mesh_password, session_random, reply[1:9])
-        #else:
-        #    if reply[0] == 0xe:
-        #        logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Device authentication error: known mesh credentials are not excepted by the device. Did you re-pair them to your Hao Deng app with a different account?')
-        #    else:
-        #        logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Unexpected pair value : {repr(reply)}')
-        #    self.disconnect()
-        #    return False
-
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Listen for notifications')
-        #self.btdevice.subscribe(STATUS_CHAR_UUID, callback=self._handleNotification)
-        #self.start_notify()
         self.client.start_notify()
 
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Send status message')
-        #self.btdevice.char_write(STATUS_CHAR_UUID, b'\x01')
         self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01')
-
         return True
 
     def _disconnectCallback(self, event):
@@ -446,45 +368,14 @@ class ZenggeMeshLight:
 
         """
         data = struct.pack("<H", mesh_id)
-        self.writeCommand(C_MESH_ADDRESS, data)
+        self.send_packet(C_MESH_ADDRESS, data)
         self.mesh_id = mesh_id
-
-    def writeCommand(self, command, data, dest=None, withResponse=True, attempt=0):
-        """
-        Args:
-            command: The command, as a number.
-            data: The parameters for the command, as bytes.
-            dest: The destination mesh id, as a number. If None, this lightbulb's
-                mesh id will be used.
-        """
-        assert (self.session_key)
-        if dest == None: dest = self.mesh_id
-        packet = pckt.make_command_packet(self.session_key, self.mac, dest, command, data)
-
-        try:
-            logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Writing command {command} data {repr(data)}')
-            #self.btdevice.char_write(uuid=COMMAND_CHAR_UUID, value=packet, wait_for_response=withResponse)
-            self.client.write_gatt_char(COMMAND_CHAR_UUID,packet, True)
-            return True
-        except (NotConnectedError, NotificationTimeout) as err:
-            logger.warning(f'[{self.mesh_name.decode()}][{self.mac}] Command failed, attempt: {attempt} - [{type(err).__name__}] {err}')
-            if attempt < 2:
-                self.reconnect()
-                return self.writeCommand(command, data, dest, withResponse, attempt+1)
-            else:
-                self.session_key = None
-                raise err
-
-        except Exception as err:
-            logger.exception(f'[{self.mesh_name.decode()}][{self.mac}] Command failed, device is disconnected: [{type(err).__name__}] {err}', err)
-            self.session_key = None
-            raise err
 
     def resetMesh(self):
         """
         Restores the default name and password. Will disconnect the device.
         """
-        return self.writeCommand(C_MESH_RESET, b'\x00')
+        return self.send_packet(C_MESH_RESET, b'\x00')
 
     def readStatus(self):
         packet = self.status_char.read()
@@ -566,7 +457,6 @@ class ZenggeMeshLight:
 
     def requestStatus(self, dest=0xffff, withResponse=False):
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] requestStatus({dest})')
-        #return self.btdevice.char_write(STATUS_CHAR_UUID, b'\x01') #Zengge can't use Status request to receive device details, need notification request
         return self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01') #Zengge can't use Status request to receive device details, need notification request
 
     def setColor(self, red, green, blue, dest=None):
@@ -575,7 +465,7 @@ class ZenggeMeshLight:
             red, green, blue: between 0 and 0xff
         """
         data = struct.pack('BBBB', C_COLOR_RGB, red, green, blue)
-        return self.writeCommand(C_COLOR, data, dest)
+        return self.send_packet(C_COLOR, data, dest)
 
     def setColorBrightness(self, brightness, dest=None):
         """
@@ -583,7 +473,7 @@ class ZenggeMeshLight:
             brightness: a value between 0xa and 0x64 ...
         """
         data = struct.pack('BBB', 0x02 , brightness, 0x06)
-        return self.writeCommand(C_COLOR_BRIGHTNESS, data, dest)
+        return self.send_packet(C_COLOR_BRIGHTNESS, data, dest)
 
     def setSequenceColorDuration(self, duration, dest=None):
         """
@@ -591,7 +481,7 @@ class ZenggeMeshLight:
             duration: in milliseconds.
         """
         data = struct.pack("<I", duration)
-        return self.writeCommand(C_SEQUENCE_COLOR_DURATION, data, dest)
+        return False #return self.send_packet(C_SEQUENCE_COLOR_DURATION, data, dest)
 
     def setSequenceFadeDuration(self, duration, dest=None):
         """
@@ -599,17 +489,7 @@ class ZenggeMeshLight:
             duration: in milliseconds.
         """
         data = struct.pack("<I", duration)
-        return self.writeCommand(C_SEQUENCE_FADE_DURATION, data, dest)
-
-    '''def setPreset(self, num, dest=None):
-        """
-        Set a preset color sequence.
-
-        Args :
-            num: number between 0 and 6
-        """
-        data = struct.pack('B', num)
-        return self.writeCommand(C_PRESET, data, dest)'''
+        return False #return self.send_packet(C_SEQUENCE_FADE_DURATION, data, dest)
 
     def setWhiteBrightness(self, brightness, dest=None):
         """
@@ -617,7 +497,7 @@ class ZenggeMeshLight:
             brightness: between 1 and 0x7f
         """
         data = struct.pack('BBB', 0x02 , brightness, 0x06)
-        return self.writeCommand(C_WHITE_BRIGHTNESS, data, dest)
+        return self.send_packet(C_WHITE_BRIGHTNESS, data, dest)
 
     def setWhiteTemperature(self, temp, dest=None):
         """
@@ -625,7 +505,7 @@ class ZenggeMeshLight:
             temp: between 0 and 0x64
         """
         data = struct.pack('BBB', 0x62 , temp, self.white_brightness)
-        return self.writeCommand(C_WHITE_TEMPERATURE, data, dest)
+        return self.send_packet(C_WHITE_TEMPERATURE, data, dest)
 
     def setWhite(self, temp, brightness, dest=None):
         """
@@ -634,19 +514,19 @@ class ZenggeMeshLight:
             brightness: between 1 and 0x7f
         """
         data = struct.pack('B', temp)
-        self.writeCommand(C_WHITE_TEMPERATURE, data, dest)
+        self.send_packet(C_WHITE_TEMPERATURE, data, dest)
         data = struct.pack('BB', 0x02 , brightness)
-        return self.writeCommand(C_WHITE_BRIGHTNESS, data, dest)
+        return self.send_packet(C_WHITE_BRIGHTNESS, data, dest)
 
     def on(self, dest=None):
         """ Turns the light on.
         """
-        return self.writeCommand(C_POWER, b'\x01', dest)
+        return self.send_packet(C_POWER, b'\x01', dest)
 
     def off(self, dest=None):
         """ Turns the light off.
         """
-        return self.writeCommand(C_POWER, b'\x00', dest)
+        return self.send_packet(C_POWER, b'\x00', dest)
 
     async def reconnect(self) -> bool:
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Reconnecting')
@@ -659,8 +539,6 @@ class ZenggeMeshLight:
         self._reconnecting = False
 
         try:
-            #self.btdevice.disconnect()
-            #self.adapter.stop()
             self.client.disconnect()
         except Exception as err:
             logger.warning(f'[{self.mesh_name.decode()}][{self.mac}] Disconnect failed: [{type(err).__name__}] {err}')
@@ -673,7 +551,6 @@ class ZenggeMeshLight:
         self.session_key = None
 
         try:
-            #self.adapter.stop()
             self.client.disconnect()
         except Exception as err:
             logger.warning(f'[{self.mesh_name.decode()}][{self.mac}] Stop failed: [{type(err).__name__}] {err}')
@@ -683,7 +560,6 @@ class ZenggeMeshLight:
         Returns :
             The firmware version as a null terminated utf-8 string.
         """
-        #return self.btdevice.char_read(uuid=FIRMWARE_REV_UUID)
         return self.client.read_gatt_char(FIRMWARE_REV_UUID)
 
     def getHardwareRevision(self):
@@ -691,7 +567,6 @@ class ZenggeMeshLight:
         Returns :
             The hardware version as a null terminated utf-8 string.
         """
-        #return self.btdevice.char_read(uuid=HARDWARE_REV_UUID)
         return self.client.read_gatt_char(HARDWARE_REV_UUID)
 
     def getModelNumber(self):
@@ -699,7 +574,6 @@ class ZenggeMeshLight:
         Returns :
             The model as a null terminated utf-8 string.
         """
-        #return self.btdevice.char_read(uuid=MODEL_NBR_UUID)
         return self.client.read_gatt_char(MODEL_NBR_UUID)
 
     @property
