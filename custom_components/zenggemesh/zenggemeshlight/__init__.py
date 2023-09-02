@@ -222,8 +222,8 @@ class ZenggeMeshLight:
         self._reconnecting = False
         self.reconnect_counter = 0
 
-        self.mesh_name = mesh_name.encode()
-        self.mesh_password = mesh_password.encode()
+        self.mesh_name = mesh_name
+        self.mesh_password = mesh_password
 
         # Light status
         self.white_brightness = 1
