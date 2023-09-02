@@ -202,7 +202,7 @@ class ZenggeColor:
         return ZenggeColor._hsl_to_rgb(ZenggeColor._h255_to_h360(color))
 
 class ZenggeMeshLight:
-    def __init__(self, mac, mesh_name="ZenggeMesh", mesh_password="ZenggeTechnology", mesh_id=0x0211):
+    def __init__(self, mac, ble_device=None, mesh_name="ZenggeMesh", mesh_password="ZenggeTechnology", mesh_id=0x0211):
         """
         Args :
             mac: The light's MAC address as a string in the form AA:BB:CC:DD:EE:FF
@@ -299,10 +299,13 @@ class ZenggeMeshLight:
         assert len(self.mesh_password) <= 16, "mesh_password can hold max 16 bytes"
 
         logger.info("[%s][%s] attemping connection...", self.mesh_name, self.mac)
-        self.client = BleakClient(self.mac, timeout=15, disconnected_callback=self._disconnectCallback)
+        if self.ble_device:
+            self.client = BleakClient(self.ble_device, timeout=15, disconnected_callback=self._disconnectCallback)
+        else:
+            self.client = BleakClient(self.mac, timeout=15, disconnected_callback=self._disconnectCallback)
         await self.client.connect()
         logger.info("[%s][%s] connected! Logging into mesh...", self.mesh_name, self.mac)
-        self.mesh_login()
+        await self.mesh_login()
 
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Listen for notifications')
         self.client.start_notify()
