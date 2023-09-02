@@ -291,8 +291,8 @@ class ZenggeMeshLight:
             mesh_name: The mesh name as a string.
             mesh_password: The mesh password as a string.
         """
-        if mesh_name: self.mesh_name = mesh_name.encode()
-        if mesh_password: self.mesh_password = mesh_password.encode()
+        if mesh_name: self.mesh_name = mesh_name
+        if mesh_password: self.mesh_password = mesh_password
 
         assert len(self.mesh_name) <= 16, "mesh_name can hold max 16 bytes"
         assert len(self.mesh_password) <= 16, "mesh_password can hold max 16 bytes"

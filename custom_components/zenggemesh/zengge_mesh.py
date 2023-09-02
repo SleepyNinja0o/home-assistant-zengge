@@ -342,7 +342,7 @@ class ZenggeMesh(DataUpdateCoordinator):
             try:
                 _LOGGER.info("[%s][%s][%s] Trying to connect", self.mesh_name, device_info['name'], device.mac)
                 async with async_timeout.timeout(20):
-                    if await self.hass.async_add_executor_job(device.connect):
+                    if await device.connect():
                         self._connected_bluetooth_device = device
                         self._state['connected_device'] = device_info['name']
                         self._state['last_connection'] = dt_util.now()
