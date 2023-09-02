@@ -454,9 +454,9 @@ class ZenggeMeshLight:
                 self.white_brightness = status['brightness']
                 self.white_temperature = status['white_temperature']
                 self.color_brightness = status['brightness']
-                self.red = status['rgb'][0]
-                self.green = status['rgb'][1]
-                self.blue = status['rgb'][2]
+                self.red = status['red']
+                self.green = status['green']
+                self.blue = status['blue']
             if status and self.status_callback:
                 self.status_callback(status)
         elif command == OPCODE_RESPONSE:
@@ -492,9 +492,9 @@ class ZenggeMeshLight:
                     self.white_brightness = status['white_brightness']
                     self.white_temperature = status['white_temperature']
                     self.color_brightness = status['color_brightness']
-                    self.red = status['rgb'][0]
-                    self.green = status['rgb'][1]
-                    self.blue = status['rgb'][2]
+                    self.red = status['red']
+                    self.green = status['green']
+                    self.blue = status['blue']
                 if status and self.status_callback:
                     self.status_callback(status)
             if (device_2_data[0] != 0):
@@ -527,9 +527,9 @@ class ZenggeMeshLight:
                     self.white_brightness = status['white_brightness']
                     self.white_temperature = status['white_temperature']
                     self.color_brightness = status['color_brightness']
-                    self.red = status['rgb'][0]
-                    self.green = status['rgb'][1]
-                    self.blue = status['rgb'][2]
+                    self.red = status['red']
+                    self.green = status['green']
+                    self.blue = status['blue']
                 if status and self.status_callback:
                     self.status_callback(status)
         else:
