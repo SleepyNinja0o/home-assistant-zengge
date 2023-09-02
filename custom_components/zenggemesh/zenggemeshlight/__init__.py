@@ -418,7 +418,7 @@ class ZenggeMeshLight:
         self._parseStatusResult(message)
 
     def _parseStatusResult(self, data): ###THIS NEEDS MODIFIED FOR ZENGGE###
-        logger.info("[%s][%s] Parsing Status Notification!", self.mesh_name, self.mac)
+        logger.info("[%s][%s] Parsing Status Notification!!", self.mesh_name, self.mac)
         command = struct.unpack('B', data[7:8])[0]
         status = {}
         if command == OPCODE_STATUS_RECEIVED: #This does not return any status info, only that the device is online
