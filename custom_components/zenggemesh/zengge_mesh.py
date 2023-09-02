@@ -338,7 +338,7 @@ class ZenggeMesh(DataUpdateCoordinator):
             if device_info['mac'] is None:
                 continue
 
-            device = ZenggeMeshLight(device_info['mac'], self._mesh_name, self._mesh_password, mesh_id)
+            device = ZenggeMeshLight(device_info['mac'], self._mesh_name, self._mesh_password)
             try:
                 _LOGGER.info("[%s][%s][%s] Trying to connect", self.mesh_name, device_info['name'], device.mac)
                 async with async_timeout.timeout(20):
@@ -381,16 +381,16 @@ class ZenggeMesh(DataUpdateCoordinator):
         self._scanning_devices = True
 
         #devices = await DeviceScanner.async_find_devices(hass=self.hass, scan_timeout=20)
-        devices = bluetooth.async_get_scanner(self.hass).discover(timeout=15,return_adv=True)
+        devices = bluetooth.async_discovered_service_info(self.hass).mapping
         _LOGGER.debug(f'[{self.mesh_name}] Scan result: {devices}')
 
         for mesh_id, device_info in self._devices.items():
-            if device_info['mac'].upper() in devices and devices[device_info['mac'].upper()]['rssi'] is not None:
+            if device_info['mac'].upper() in devices.keys() and devices.get(device_info['mac'].upper()).rssi is not None:
                 _LOGGER.info('[%s][%s][%s] Bluetooth scan returns RSSI value = %s', self.mesh_name, device_info['name'],
-                             device_info['mac'], devices[device_info['mac'].upper()]['rssi'])
-                self._devices[mesh_id]['rssi'] = devices[device_info['mac'].upper()]['rssi']
+                             device_info['mac'], devices.get(device_info['mac'].upper()).rssi)
+                self._devices[mesh_id]['rssi'] = devices.get(device_info['mac'].upper()).rssi
 
-            elif device_info['mac'].upper() in devices:
+            elif device_info['mac'].upper() in devices.keys():
                 _LOGGER.info('[%s][%s][%s] Bluetooth scan returns no RSSI value', self.mesh_name, device_info['name'], device_info['mac'])
                 self._devices[mesh_id]['rssi'] = -99999
 
