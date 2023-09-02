@@ -250,7 +250,7 @@ class ZenggeLight(CoordinatorEntity, LightEntity):
         """Instruct the light to turn on."""
         status = {}
 
-        _LOGGER.debug('[%s] Turn on %s', self.unique_id, kwargs)
+        _LOGGER.info('[%s] Turn on %s', self.unique_id, kwargs)
 
         if ATTR_RGB_COLOR in kwargs:
             rgb = kwargs[ATTR_RGB_COLOR]
@@ -285,7 +285,7 @@ class ZenggeLight(CoordinatorEntity, LightEntity):
 
     async def async_turn_off(self, **kwargs):
         """Instruct the light to turn off."""
-        _LOGGER.debug("[%s] turn off", self.unique_id)
+        _LOGGER.info("[%s] turn off", self.unique_id)
         await self._mesh.async_off(self._mesh_id)
         self.status_callback({'state': False})
 
