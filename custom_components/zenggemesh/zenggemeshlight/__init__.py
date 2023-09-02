@@ -536,8 +536,8 @@ class ZenggeMeshLight:
         Args :
             red, green, blue: between 0 and 0xff
         """
-        data = struct.pack('BBBB', C_COLOR_RGB, red, green, blue)
-        return self.send_packet(C_COLOR, data, dest)
+        data = bytes([0xFF,COLORMODE_RGB, red, green, blue])
+        return self.send_packet(OPCODE_SETCOLOR, data, dest)
 
     def setColorBrightness(self, brightness, dest=None):
         """
