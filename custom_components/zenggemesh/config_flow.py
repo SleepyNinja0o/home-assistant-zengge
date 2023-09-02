@@ -14,7 +14,7 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD
 )
-from .scanner import DeviceScanner
+#from .scanner import DeviceScanner
 from .const import DOMAIN, CONF_MESH_NAME, CONF_MESH_PASSWORD, CONF_MESH_KEY
 from .zengge_connect import ZenggeConnect
 

@@ -16,7 +16,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 # import zenggemeshlight from .zenggemeshlight
 from .zenggemeshlight import ZenggeMeshLight
 from .const import DOMAIN
-from .scanner import DeviceScanner
+#from .scanner import DeviceScanner
 
 _LOGGER = logging.getLogger(__name__)
 

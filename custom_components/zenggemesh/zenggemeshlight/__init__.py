@@ -309,7 +309,7 @@ class ZenggeMeshLight:
         await self.mesh_login()
 
         logger.debug(f'[{self.mesh_name}][{self.mac}] Listen for notifications')
-        self.client.start_notify()
+        await self.enable_notify()
 
         logger.debug(f'[{self.mesh_name}][{self.mac}] Send status message')
         self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01')
@@ -418,6 +418,7 @@ class ZenggeMeshLight:
         self._parseStatusResult(message)
 
     def _parseStatusResult(self, data): ###THIS NEEDS MODIFIED FOR ZENGGE###
+        logger.info("[%s][%s] Parsing Status Notification!", self.mesh_name, self.mac)
         command = struct.unpack('B', data[7:8])[0]
         status = {}
         if command == OPCODE_STATUS_RECEIVED: #This does not return any status info, only that the device is online
