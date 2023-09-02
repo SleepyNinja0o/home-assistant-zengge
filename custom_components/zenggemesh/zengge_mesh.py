@@ -230,7 +230,7 @@ class ZenggeMesh(DataUpdateCoordinator):
             device = self._connected_bluetooth_device
             self._connected_bluetooth_device = None
             async with async_timeout.timeout(10):
-                await self.hass.async_add_executor_job(device.disconnect)
+                await device.disconnect()
         except Exception as e:
             _LOGGER.exception('[%s] Failed to disconnect [%s] %s', self.mesh_name, type(e).__name__, e)
 
@@ -357,7 +357,7 @@ class ZenggeMesh(DataUpdateCoordinator):
 
             _LOGGER.debug('[%s][%s][%s] Setting up Bluetooth connection failed, making sure Bluetooth device stops trying', self.mesh_name, device_info['name'], device.mac)
 
-            await self.hass.async_add_executor_job(device.stop)
+            await device.stop()
 
         if self._connected_bluetooth_device is not None:
             self._connected_bluetooth_device.status_callback = self.mesh_status_callback

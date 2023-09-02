@@ -212,6 +212,7 @@ class ZenggeMeshLight:
         """
         self.mac = mac
         self.mesh_id = mesh_id
+        self.ble_device = None
         self.client = None
         self.session_key = None
 
@@ -297,8 +298,10 @@ class ZenggeMeshLight:
         assert len(self.mesh_name) <= 16, "mesh_name can hold max 16 bytes"
         assert len(self.mesh_password) <= 16, "mesh_password can hold max 16 bytes"
 
+        logger.info("[%s][%s] attemping connection...", self.mesh_name, self.mac)
         self.client = BleakClient(self.mac, timeout=15, disconnected_callback=self._disconnectCallback)
         await self.client.connect()
+        logger.info("[%s][%s] connected! Logging into mesh...", self.mesh_name, self.mac)
         self.mesh_login()
 
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Listen for notifications')
@@ -605,25 +608,25 @@ class ZenggeMeshLight:
         self.session_key = None
         return await self.connect()
 
-    def disconnect(self):
+    async def disconnect(self):
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Disconnecting')
         self.session_key = None
         self._reconnecting = False
 
         try:
-            self.client.disconnect()
+            await self.client.disconnect()
         except Exception as err:
             logger.warning(f'[{self.mesh_name.decode()}][{self.mac}] Disconnect failed: [{type(err).__name__}] {err}')
             self.stop()
 
-    def stop(self):
+    async def stop(self):
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Force stopping ble adapter')
 
         self._reconnecting = False
         self.session_key = None
 
         try:
-            self.client.disconnect()
+            await self.client.disconnect()
         except Exception as err:
             logger.warning(f'[{self.mesh_name.decode()}][{self.mac}] Stop failed: [{type(err).__name__}] {err}')
 
