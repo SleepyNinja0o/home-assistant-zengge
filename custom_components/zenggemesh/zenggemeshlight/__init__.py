@@ -245,14 +245,14 @@ class ZenggeMeshLight:
         if self.client == None:
             return
         session_random = urandom(8)
-        message = pckt.make_pair_packet(self.mesh_name.encode(), self.mesh_pass.encode(), session_random)
+        message = pckt.make_pair_packet(self.mesh_name.encode(), self.mesh_password.encode(), session_random)
         logger.info(f'[{self.mesh_name}][{self.mac}] Send pair message {message}')
         pairReply = await self.client.write_gatt_char(PAIR_CHAR_UUID, bytes(message), True)
         await asyncio.sleep(0.3)
         reply = await self.client.read_gatt_char(PAIR_CHAR_UUID)
         logger.debug(f"[{self.mesh_name}][{self.mac}] Read {reply} from characteristic {PAIR_CHAR_UUID}")
 
-        self.session_key = pckt.make_session_key(self.mesh_name.encode(), self.mesh_pass.encode(), session_random, reply[1:9])
+        self.session_key = pckt.make_session_key(self.mesh_name.encode(), self.mesh_password.encode(), session_random, reply[1:9])
         if reply[0] == 0xd:
             self.session_key = pckt.make_session_key(self.mesh_name, self.mesh_password, session_random, reply[1:9])
         else:
@@ -375,8 +375,8 @@ class ZenggeMeshLight:
         reply = bytearray(await self.client.read_gatt_char(PAIR_CHAR_UUID))
         if reply[0] == 0x7:
             self.mesh_name = new_mesh_name
-            self.mesh_pass = new_mesh_password
-            print(f'[{self.mesh_name}]-[{self.mesh_pass}]-[{self.mac}] Mesh network settings accepted.')
+            self.mesh_password = new_mesh_password
+            print(f'[{self.mesh_name}]-[{self.mesh_password}]-[{self.mac}] Mesh network settings accepted.')
             return True
         else:
             print(f'[{self.mesh_name}][{self.mac}] Mesh network settings change failed : {repr(reply)}')
