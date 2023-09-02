@@ -254,7 +254,7 @@ class ZenggeMeshLight:
 
         self.session_key = pckt.make_session_key(self.mesh_name.encode(), self.mesh_password.encode(), session_random, reply[1:9])
         if reply[0] == 0xd:
-            self.session_key = pckt.make_session_key(self.mesh_name, self.mesh_password, session_random, reply[1:9])
+            self.session_key = pckt.make_session_key(self.mesh_name.encode(), self.mesh_password.encode(), session_random, reply[1:9])
         else:
             if reply[0] == 0xe:
                 logger.info(f'[{self.mesh_name}][{self.mac}] Device authentication error: known mesh credentials are not excepted by the device. Did you re-pair them to your Hao Deng app with a different account?')
