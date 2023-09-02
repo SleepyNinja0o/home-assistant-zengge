@@ -101,10 +101,34 @@ C_GET_TIME = 0xe4
 #SN - Zengge does not use this opcode
 #C_ALARMS = 0xe5
 
+OPCODE_SETCOLOR = 0xe2
+OPCODE_SETCCT = 0xf4
+OPCODE_SETSTATE = 0xd0
+OPCODE_SETBRIGHTNESS = 0xd0
+OPCODE_SETFLASH = 0xd2
+
 OPCODE_GET_STATUS = 0xda        #Request current light/device status
 OPCODE_STATUS_RECEIVED = 0xdb    #Response of light/device status request
 OPCODE_NOTIFICATION_RECEIVED = 0xdc  #State notification
 OPCODE_RESPONSE = 0xdc
+
+STATEACTION_POWER = 0x01
+STATEACTION_BRIGHTNESS = 0x02
+STATEACTION_INCREASEBRIGHTNESS = 0x03
+STATEACTION_DECREASEBRIGHTNESS = 0x04
+
+COLORMODE_RGB = 0x60
+COLORMODE_WARMWHITE = 0x61
+COLORMODE_CCT = 0x62
+COLORMODE_AUX = 0x63
+COLORMODE_CCTAUX = 0x64
+
+DIMMINGTARGET_RGBKWC = 0x01 #Set RGB, Keep WC
+DIMMINGTARGET_WCKRGB = 0x02 #Set WC, Keep RGB
+DIMMINGTARGET_RGBWC = 0x03  #Set RGB & WC
+DIMMINGTARGET_RGBOWC = 0x04 #Set RGB, WC Off
+DIMMINGTARGET_WCORGB = 0x05 #Set WC, RGB Off
+DIMMINGTARGET_AUTO = 0x06   #Set lights according to situation
 
 PAIR_CHAR_UUID = '00010203-0405-0607-0809-0a0b0c0d1914'
 COMMAND_CHAR_UUID = '00010203-0405-0607-0809-0a0b0c0d1912'
@@ -408,21 +432,23 @@ class ZenggeMeshLight:
                 'mesh_id': mesh_address,
                 'state': brightness != 0,
                 'color_mode': color_mode,
-                'rgb': rgb,
+                'red': rgb[0],
+                'green': rgb[1],
+                'blue': rgb[2],
                 'white_temperature': cct,
                 'brightness': brightness,
             }
             print(f'[{self.mesh_name}][{self.mac}] Parsed status: {status}\n')
-            if status and status['mesh_id'] == self.mesh_id:
+            if status: #and status['mesh_id'] == self.mesh_id:
                 logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
                 self.state = status['state']
                 self.color_mode = status['color_mode']
-                self.white_brightness = status['white_brightness']
+                self.white_brightness = status['brightness']
                 self.white_temperature = status['white_temperature']
-                self.color_brightness = status['color_brightness']
-                self.red = status['red']
-                self.green = status['green']
-                self.blue = status['blue']
+                self.color_brightness = status['brightness']
+                self.red = status['rgb'][0]
+                self.green = status['rgb'][1]
+                self.blue = status['rgb'][2]
             if status and self.status_callback:
                 self.status_callback(status)
         elif command == OPCODE_RESPONSE:
@@ -444,21 +470,23 @@ class ZenggeMeshLight:
                     'mesh_id': mesh_address,
                     'state': brightness != 0,
                     'color_mode': color_mode,
-                    'rgb': rgb,
+                    'red': rgb[0],
+                    'green': rgb[1],
+                    'blue': rgb[2],
                     'white_temperature': cct,
                     'brightness': brightness,
                 }
                 print(f'[{self.mesh_name}][{self.mac}] Parsed status: {status}\n')
-                if status and status['mesh_id'] == self.mesh_id:
+                if status: #and status['mesh_id'] == self.mesh_id:
                     logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
                     self.state = status['state']
                     self.color_mode = status['color_mode']
                     self.white_brightness = status['white_brightness']
                     self.white_temperature = status['white_temperature']
                     self.color_brightness = status['color_brightness']
-                    self.red = status['red']
-                    self.green = status['green']
-                    self.blue = status['blue']
+                    self.red = status['rgb'][0]
+                    self.green = status['rgb'][1]
+                    self.blue = status['rgb'][2]
                 if status and self.status_callback:
                     self.status_callback(status)
             if (device_2_data[0] != 0):
@@ -477,21 +505,23 @@ class ZenggeMeshLight:
                     'mesh_id': mesh_address,
                     'state': brightness != 0,
                     'color_mode': color_mode,
-                    'rgb': rgb,
+                    'red': rgb[0],
+                    'green': rgb[1],
+                    'blue': rgb[2],
                     'white_temperature': cct,
                     'brightness': brightness,
                 }
                 print(f'[{self.mesh_name}][{self.mac}] Parsed status: {status}\n')
-                if status and status['mesh_id'] == self.mesh_id:
+                if status: #and status['mesh_id'] == self.mesh_id:
                     logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
                     self.state = status['state']
                     self.color_mode = status['color_mode']
                     self.white_brightness = status['white_brightness']
                     self.white_temperature = status['white_temperature']
                     self.color_brightness = status['color_brightness']
-                    self.red = status['red']
-                    self.green = status['green']
-                    self.blue = status['blue']
+                    self.red = status['rgb'][0]
+                    self.green = status['rgb'][1]
+                    self.blue = status['rgb'][2]
                 if status and self.status_callback:
                     self.status_callback(status)
         else:
@@ -563,12 +593,12 @@ class ZenggeMeshLight:
     def on(self, dest=None):
         """ Turns the light on.
         """
-        return self.send_packet(C_POWER, b'\x01', dest)
+        return self.send_packet(OPCODE_SETSTATE, bytes([0xFF,STATEACTION_POWER,1]), dest)
 
     def off(self, dest=None):
         """ Turns the light off.
         """
-        return self.send_packet(C_POWER, b'\x00', dest)
+        return self.send_packet(OPCODE_SETSTATE, bytes(0xFF,STATEACTION_POWER,0), dest)
 
     async def reconnect(self) -> bool:
         logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Reconnecting')
