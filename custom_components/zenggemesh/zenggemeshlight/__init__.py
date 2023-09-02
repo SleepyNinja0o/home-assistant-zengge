@@ -411,8 +411,9 @@ class ZenggeMeshLight:
             return
 
         message = pckt.decrypt_packet(self.session_key, self.mac, data)
+        logger.info(f'[{self.mesh_name}][{self.mac}] Recevied Notification: {repr(list(message))}')
         if message is None:
-            logger.warning(f'[{self.mesh_name}][{self.mac}] Failed to decrypt package [key: {self.session_key}, data: {data}]')
+            logger.info(f'[{self.mesh_name}][{self.mac}] Failed to decrypt package [key: {self.session_key}, data: {data}]')
             return
 
         self._parseStatusResult(message)
@@ -423,42 +424,6 @@ class ZenggeMeshLight:
         if command == OPCODE_STATUS_RECEIVED: #This does not return any status info, only that the device is online
             mesh_address = struct.unpack('B', data[3:4])[0]
         elif command == OPCODE_NOTIFICATION_RECEIVED:
-            device_data = struct.unpack('BBBBB', data[10:15])
-            mesh_address = device_data[0]
-            mode = device_data[3]
-            brightness = device_data[2]
-            cct = color = device_data[4]
-            if(mode == 63 or mode == 42):
-                color_mode = 'rgb'
-                rgb = ZenggeColor.decode(color) #Converts from 1 value(kelvin) to RGB
-            else:
-                color_mode = 'white'
-                rgb = [0,0,0]
-            status = {
-                'type': 'notification',
-                'mesh_id': mesh_address,
-                'state': brightness != 0,
-                'color_mode': color_mode,
-                'red': rgb[0],
-                'green': rgb[1],
-                'blue': rgb[2],
-                'white_temperature': cct,
-                'brightness': brightness,
-            }
-            logger.info(f'[{self.mesh_name}][{self.mac}] Parsed notification - status: {status}\n')
-            if status: #and status['mesh_id'] == self.mesh_id:
-                logger.info(f'[{self.mesh_name}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
-                self.state = status['state']
-                self.color_mode = status['color_mode']
-                self.white_brightness = status['brightness']
-                self.white_temperature = status['white_temperature']
-                self.color_brightness = status['brightness']
-                self.red = status['red']
-                self.green = status['green']
-                self.blue = status['blue']
-            if status and self.status_callback:
-                self.status_callback(status)
-        elif command == OPCODE_RESPONSE:
             device_1_data = struct.unpack('BBBBB', data[10:15])
             device_2_data = struct.unpack('BBBBB', data[15:20])
             if (device_1_data[0] != 0):
@@ -536,7 +501,7 @@ class ZenggeMeshLight:
 
     async def requestStatus(self, dest=0xffff, withResponse=False):
         logger.debug(f'[{self.mesh_name}][{self.mac}] requestStatus({dest})')
-        return await self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01', withResponse) #Zengge can't use Status request to receive device details, need notification request
+        return await self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01', False) #Zengge can't use Status request to receive device details, need notification request
 
     async def setColor(self, red, green, blue, dest=None):
         """
