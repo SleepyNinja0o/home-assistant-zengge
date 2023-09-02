@@ -308,17 +308,17 @@ class ZenggeMeshLight:
         logger.info("[%s][%s] connected! Logging into mesh...", self.mesh_name, self.mac)
         await self.mesh_login()
 
-        logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Listen for notifications')
+        logger.debug(f'[{self.mesh_name}][{self.mac}] Listen for notifications')
         self.client.start_notify()
 
-        logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Send status message')
+        logger.debug(f'[{self.mesh_name}][{self.mac}] Send status message')
         self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01')
         return True
 
     def _disconnectCallback(self, event):
-        logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Disconnected by backend')
+        logger.info(f'[{self.mesh_name}][{self.mac}] Disconnected by backend')
         if self.session_key:
-            logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Try to reconnect...')
+            logger.info(f'[{self.mesh_name}][{self.mac}] Try to reconnect...')
             reconnect_thread = threading.Thread(target=self._auto_reconnect, name='Reconnect-' + self.mac)
             reconnect_thread.start()
 
@@ -332,12 +332,12 @@ class ZenggeMeshLight:
                     break
             except Exception as err:
                 self.reconnect_counter += 1
-                logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Failed to reconnect attempt {self.reconnect_counter} [{type(err).__name__}] {err}')
+                logger.info(f'[{self.mesh_name}][{self.mac}] Failed to reconnect attempt {self.reconnect_counter} [{type(err).__name__}] {err}')
                 asyncio.sleep(1)
 
         self._reconnecting = False
 
-        logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Reconnect done after attempt {self.reconnect_counter}, success: {self.is_connected}')
+        logger.info(f'[{self.mesh_name}][{self.mac}] Reconnect done after attempt {self.reconnect_counter}, success: {self.is_connected}')
 
         if not self.is_connected:
             self.stop()
@@ -407,12 +407,12 @@ class ZenggeMeshLight:
     def _handleNotification(self, cHandle, data):
 
         if self.session_key is None:
-            logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Device is disconnected, ignoring received notification [unable to decrypt without active session]')
+            logger.info(f'[{self.mesh_name}][{self.mac}] Device is disconnected, ignoring received notification [unable to decrypt without active session]')
             return
 
         message = pckt.decrypt_packet(self.session_key, self.mac, data)
         if message is None:
-            logger.warning(f'[{self.mesh_name.decode()}][{self.mac}] Failed to decrypt package [key: {self.session_key}, data: {data}]')
+            logger.warning(f'[{self.mesh_name}][{self.mac}] Failed to decrypt package [key: {self.session_key}, data: {data}]')
             return
 
         self._parseStatusResult(message)
@@ -447,7 +447,7 @@ class ZenggeMeshLight:
             }
             print(f'[{self.mesh_name}][{self.mac}] Parsed status: {status}\n')
             if status: #and status['mesh_id'] == self.mesh_id:
-                logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
+                logger.info(f'[{self.mesh_name}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
                 self.state = status['state']
                 self.color_mode = status['color_mode']
                 self.white_brightness = status['brightness']
@@ -485,7 +485,7 @@ class ZenggeMeshLight:
                 }
                 print(f'[{self.mesh_name}][{self.mac}] Parsed status: {status}\n')
                 if status: #and status['mesh_id'] == self.mesh_id:
-                    logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
+                    logger.info(f'[{self.mesh_name}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
                     self.state = status['state']
                     self.color_mode = status['color_mode']
                     self.white_brightness = status['white_brightness']
@@ -520,7 +520,7 @@ class ZenggeMeshLight:
                 }
                 print(f'[{self.mesh_name}][{self.mac}] Parsed status: {status}\n')
                 if status: #and status['mesh_id'] == self.mesh_id:
-                    logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
+                    logger.info(f'[{self.mesh_name}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
                     self.state = status['state']
                     self.color_mode = status['color_mode']
                     self.white_brightness = status['white_brightness']
@@ -535,7 +535,7 @@ class ZenggeMeshLight:
             print(f'[{self.mesh_name}][{self.mac}] Unknown command [{command}]')
 
     def requestStatus(self, dest=0xffff, withResponse=False):
-        logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] requestStatus({dest})')
+        logger.debug(f'[{self.mesh_name}][{self.mac}] requestStatus({dest})')
         return self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01') #Zengge can't use Status request to receive device details, need notification request
 
     def setColor(self, red, green, blue, dest=None):
@@ -608,23 +608,23 @@ class ZenggeMeshLight:
         return self.send_packet(OPCODE_SETSTATE, bytes(0xFF,STATEACTION_POWER,0), dest)
 
     async def reconnect(self) -> bool:
-        logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Reconnecting')
+        logger.debug(f'[{self.mesh_name}][{self.mac}] Reconnecting')
         self.session_key = None
         return await self.connect()
 
     async def disconnect(self):
-        logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Disconnecting')
+        logger.debug(f'[{self.mesh_name}][{self.mac}] Disconnecting')
         self.session_key = None
         self._reconnecting = False
 
         try:
             await self.client.disconnect()
         except Exception as err:
-            logger.warning(f'[{self.mesh_name.decode()}][{self.mac}] Disconnect failed: [{type(err).__name__}] {err}')
+            logger.warning(f'[{self.mesh_name}][{self.mac}] Disconnect failed: [{type(err).__name__}] {err}')
             self.stop()
 
     async def stop(self):
-        logger.debug(f'[{self.mesh_name.decode()}][{self.mac}] Force stopping ble adapter')
+        logger.debug(f'[{self.mesh_name}][{self.mac}] Force stopping ble adapter')
 
         self._reconnecting = False
         self.session_key = None
@@ -632,7 +632,7 @@ class ZenggeMeshLight:
         try:
             await self.client.disconnect()
         except Exception as err:
-            logger.warning(f'[{self.mesh_name.decode()}][{self.mac}] Stop failed: [{type(err).__name__}] {err}')
+            logger.warning(f'[{self.mesh_name}][{self.mac}] Stop failed: [{type(err).__name__}] {err}')
 
     def getFirmwareRevision(self):
         """
