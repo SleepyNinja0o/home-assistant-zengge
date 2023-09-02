@@ -212,7 +212,7 @@ class ZenggeMeshLight:
         """
         self.mac = mac
         self.mesh_id = mesh_id
-        self.ble_device = None
+        self.ble_device = ble_device
         self.client = None
         self.session_key = None
 
@@ -312,7 +312,7 @@ class ZenggeMeshLight:
         await self.enable_notify()
 
         logger.debug(f'[{self.mesh_name}][{self.mac}] Send status message')
-        self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01')
+        await self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01')
         return True
 
     def _disconnectCallback(self, event):
