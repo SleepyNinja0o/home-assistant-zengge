@@ -130,7 +130,7 @@ class ZenggeMesh(DataUpdateCoordinator):
             async with async_timeout.timeout(20):
                 await self._async_add_command_to_queue('requestStatus', {'dest': 0xffff, 'withResponse': True})
         except Exception as e:
-            _LOGGER.warning('[%s] Requesting status failed - [%s] %s', self.mesh_name, type(e).__name__, e)
+            _LOGGER.info('[%s] Requesting status failed - [%s] %s', self.mesh_name, type(e).__name__, e)
 
         # Not connected after executing command then we assume we could not connect to a device
         if not self.is_connected():
@@ -145,7 +145,7 @@ class ZenggeMesh(DataUpdateCoordinator):
 
         for mesh_id, device_info in self._devices.items():
 
-            _LOGGER.debug(f'[{self.mesh_name}][{device_info["name"]}] update count: {device_info["update_count"]}; request count: {device_info["status_request_count"]}; RSSI: {device_info["rssi"]}; last update: {device_info["last_update"]}')
+            _LOGGER.info(f'[{self.mesh_name}][{device_info["name"]}] update count: {device_info["update_count"]}; request count: {device_info["status_request_count"]}; RSSI: {device_info["rssi"]}; last update: {device_info["last_update"]}')
 
             # Force status update for specific mesh_id when no new update for the last minute
             if device_info['last_update'] is None \
@@ -172,6 +172,7 @@ class ZenggeMesh(DataUpdateCoordinator):
         return self._state
 
     def update_status_of_all_devices_to_disabled(self):
+        _LOGGER.info("------***------All devices disabled------***------")
         for mesh_id, device_info in self._devices.items():
             if device_info['last_update'] is not None:
                 device_info['callback']({'state': None})
@@ -192,13 +193,13 @@ class ZenggeMesh(DataUpdateCoordinator):
                          self.mesh_name, status['mesh_id'] if 'mesh_id' in status else 'unknown')
             return
 
-        _LOGGER.debug('[%s][%s][%d] mesh_status_callback(%s)',
+        _LOGGER.info('[%s][%s][%d] mesh_status_callback(%s)',
                       self.mesh_name, self._devices[status['mesh_id']]['name'], status['mesh_id'], status)
 
-        if status['type'] != 'status':
-            _LOGGER.debug('[%s][%s][%d] skipping all non status callbacks',
-                      self.mesh_name, self._devices[status['mesh_id']]['name'], status['mesh_id'])
-            return
+        #if status['type'] != 'status':
+        #    _LOGGER.info('[%s][%s][%d] skipping all non status callbacks',
+        #              self.mesh_name, self._devices[status['mesh_id']]['name'], status['mesh_id'])
+        #    return
 
         self._devices[status['mesh_id']]['callback'](status)
 

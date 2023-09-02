@@ -318,7 +318,7 @@ class ZenggeLight(CoordinatorEntity, LightEntity):
                 color_mode = self._attr_color_mode = ColorMode.BRIGHTNESS
             self._attr_color_mode = color_mode
 
-        _LOGGER.debug('[%s][%s] mode[%s] Status callback: %s', self.unique_id, self.name, self._attr_color_mode, status)
+        _LOGGER.info('[%s][%s] mode[%s] Status callback: %s', self.unique_id, self.name, self._attr_color_mode, status)
 
         self.async_write_ha_state()
 

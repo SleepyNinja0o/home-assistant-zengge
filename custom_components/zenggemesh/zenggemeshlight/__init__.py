@@ -418,7 +418,6 @@ class ZenggeMeshLight:
         self._parseStatusResult(message)
 
     def _parseStatusResult(self, data): ###THIS NEEDS MODIFIED FOR ZENGGE###
-        logger.info("[%s][%s] Parsing Status Notification!!", self.mesh_name, self.mac)
         command = struct.unpack('B', data[7:8])[0]
         status = {}
         if command == OPCODE_STATUS_RECEIVED: #This does not return any status info, only that the device is online
@@ -446,7 +445,7 @@ class ZenggeMeshLight:
                 'white_temperature': cct,
                 'brightness': brightness,
             }
-            print(f'[{self.mesh_name}][{self.mac}] Parsed status: {status}\n')
+            logger.info(f'[{self.mesh_name}][{self.mac}] Parsed notification - status: {status}\n')
             if status: #and status['mesh_id'] == self.mesh_id:
                 logger.info(f'[{self.mesh_name}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
                 self.state = status['state']
@@ -484,7 +483,7 @@ class ZenggeMeshLight:
                     'white_temperature': cct,
                     'brightness': brightness,
                 }
-                print(f'[{self.mesh_name}][{self.mac}] Parsed status: {status}\n')
+                logger.info(f'[{self.mesh_name}][{self.mac}] Parsed response - status: {status}\n')
                 if status: #and status['mesh_id'] == self.mesh_id:
                     logger.info(f'[{self.mesh_name}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
                     self.state = status['state']
@@ -519,7 +518,7 @@ class ZenggeMeshLight:
                     'white_temperature': cct,
                     'brightness': brightness,
                 }
-                print(f'[{self.mesh_name}][{self.mac}] Parsed status: {status}\n')
+                logger.info(f'[{self.mesh_name}][{self.mac}] Parsed response - status: {status}\n')
                 if status: #and status['mesh_id'] == self.mesh_id:
                     logger.info(f'[{self.mesh_name}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
                     self.state = status['state']
@@ -537,7 +536,7 @@ class ZenggeMeshLight:
 
     def requestStatus(self, dest=0xffff, withResponse=False):
         logger.debug(f'[{self.mesh_name}][{self.mac}] requestStatus({dest})')
-        return self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01') #Zengge can't use Status request to receive device details, need notification request
+        return self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01', withResponse) #Zengge can't use Status request to receive device details, need notification request
 
     def setColor(self, red, green, blue, dest=None):
         """
