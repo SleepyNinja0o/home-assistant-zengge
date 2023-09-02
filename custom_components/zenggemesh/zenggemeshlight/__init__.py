@@ -658,7 +658,7 @@ class ZenggeMeshLight:
 
     @property
     def is_connected(self) -> bool:
-        return self.session_key is not None and self.btdevice and self.btdevice.connected
+        return self.session_key is not None and self.client and self.client.is_connected
 
     @property
     def reconnecting(self) -> bool:
