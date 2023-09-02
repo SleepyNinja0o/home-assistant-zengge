@@ -246,20 +246,20 @@ class ZenggeMeshLight:
             return
         session_random = urandom(8)
         message = pckt.make_pair_packet(self.mesh_name.encode(), self.mesh_pass.encode(), session_random)
-        logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Send pair message {message}')
+        logger.info(f'[{self.mesh_name}][{self.mac}] Send pair message {message}')
         pairReply = await self.client.write_gatt_char(PAIR_CHAR_UUID, bytes(message), True)
         await asyncio.sleep(0.3)
         reply = await self.client.read_gatt_char(PAIR_CHAR_UUID)
-        logger.debug(f"[{self.mesh_name.decode()}][{self.mac}] Read {reply} from characteristic {PAIR_CHAR_UUID}")
+        logger.debug(f"[{self.mesh_name}][{self.mac}] Read {reply} from characteristic {PAIR_CHAR_UUID}")
 
         self.session_key = pckt.make_session_key(self.mesh_name.encode(), self.mesh_pass.encode(), session_random, reply[1:9])
         if reply[0] == 0xd:
             self.session_key = pckt.make_session_key(self.mesh_name, self.mesh_password, session_random, reply[1:9])
         else:
             if reply[0] == 0xe:
-                logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Device authentication error: known mesh credentials are not excepted by the device. Did you re-pair them to your Hao Deng app with a different account?')
+                logger.info(f'[{self.mesh_name}][{self.mac}] Device authentication error: known mesh credentials are not excepted by the device. Did you re-pair them to your Hao Deng app with a different account?')
             else:
-                logger.info(f'[{self.mesh_name.decode()}][{self.mac}] Unexpected pair value : {repr(reply)}')
+                logger.info(f'[{self.mesh_name}][{self.mac}] Unexpected pair value : {repr(reply)}')
             self.disconnect()
             return False
 
@@ -301,6 +301,7 @@ class ZenggeMeshLight:
         logger.info("[%s][%s] attemping connection...", self.mesh_name, self.mac)
         if self.ble_device:
             self.client = BleakClient(self.ble_device, timeout=15, disconnected_callback=self._disconnectCallback)
+            logger.info("Connecting with BLEDevice")
         else:
             self.client = BleakClient(self.mac, timeout=15, disconnected_callback=self._disconnectCallback)
         await self.client.connect()
