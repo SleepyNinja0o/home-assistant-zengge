@@ -322,13 +322,13 @@ class ZenggeMeshLight:
             reconnect_thread = threading.Thread(target=self._auto_reconnect, name='Reconnect-' + self.mac)
             reconnect_thread.start()
 
-    def _auto_reconnect(self):
+    async def _auto_reconnect(self):
         self.session_key = None
         self.reconnect_counter = 0
         self._reconnecting = True
         while self.session_key is None and self.reconnect_counter < 3 and self._reconnecting:
             try:
-                if self.reconnect():
+                if await self.reconnect():
                     break
             except Exception as err:
                 self.reconnect_counter += 1
@@ -340,7 +340,7 @@ class ZenggeMeshLight:
         logger.info(f'[{self.mesh_name}][{self.mac}] Reconnect done after attempt {self.reconnect_counter}, success: {self.is_connected}')
 
         if not self.is_connected:
-            self.stop()
+            await self.stop()
 
     async def setMesh(self, new_mesh_name, new_mesh_password, new_mesh_long_term_key):
         """
@@ -394,11 +394,11 @@ class ZenggeMeshLight:
         self.send_packet(C_MESH_ADDRESS, data)
         self.mesh_id = mesh_id
 
-    def resetMesh(self):
+    async def resetMesh(self):
         """
         Restores the default name and password. Will disconnect the device.
         """
-        return self.send_packet(C_MESH_RESET, b'\x00')
+        return await self.send_packet(C_MESH_RESET, b'\x00')
 
     def readStatus(self):
         packet = self.status_char.read()
@@ -621,7 +621,7 @@ class ZenggeMeshLight:
             await self.client.disconnect()
         except Exception as err:
             logger.warning(f'[{self.mesh_name}][{self.mac}] Disconnect failed: [{type(err).__name__}] {err}')
-            self.stop()
+            await self.stop()
 
     async def stop(self):
         logger.debug(f'[{self.mesh_name}][{self.mac}] Force stopping ble adapter')

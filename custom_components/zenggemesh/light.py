@@ -224,22 +224,22 @@ class ZenggeLight(CoordinatorEntity, LightEntity):
         if self.color_mode != ColorMode.RGB:
             if self._white_brightness is None:
                 return None
-            return convert_value_to_available_range(self._white_brightness, int(1), int(0x64), 0, 255)
+            return self._white_brightness
 
         if self._color_brightness is None:
             return None
 
-        return convert_value_to_available_range(self._color_brightness, int(1), int(0x64), 0, 255)
+        return self._color_brightness
 
     @property
     def min_mireds(self):
         # 6500 Kelvin
-        return 153
+        return 1
 
     @property
     def max_mireds(self):
         # 2700 Kelvin
-        return 370
+        return 255
 
     @property
     def is_on(self):
