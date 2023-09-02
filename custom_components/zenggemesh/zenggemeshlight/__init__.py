@@ -534,25 +534,25 @@ class ZenggeMeshLight:
         else:
             print(f'[{self.mesh_name}][{self.mac}] Unknown command [{command}]')
 
-    def requestStatus(self, dest=0xffff, withResponse=False):
+    async def requestStatus(self, dest=0xffff, withResponse=False):
         logger.debug(f'[{self.mesh_name}][{self.mac}] requestStatus({dest})')
-        return self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01', withResponse) #Zengge can't use Status request to receive device details, need notification request
+        return await self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01', withResponse) #Zengge can't use Status request to receive device details, need notification request
 
-    def setColor(self, red, green, blue, dest=None):
+    async def setColor(self, red, green, blue, dest=None):
         """
         Args :
             red, green, blue: between 0 and 0xff
         """
         data = bytes([0xFF,COLORMODE_RGB, red, green, blue])
-        return self.send_packet(OPCODE_SETCOLOR, data, dest)
+        return await self.send_packet(OPCODE_SETCOLOR, data, dest)
 
-    def setColorBrightness(self, brightness, dest=None):
+    async def setColorBrightness(self, brightness, dest=None):
         """
         Args :
             brightness: a value between 0xa and 0x64 ...
         """
         data = struct.pack('BBB', 0x02 , brightness, 0x06)
-        return self.send_packet(C_COLOR_BRIGHTNESS, data, dest)
+        return await self.send_packet(C_COLOR_BRIGHTNESS, data, dest)
 
     def setSequenceColorDuration(self, duration, dest=None):
         """
@@ -570,23 +570,23 @@ class ZenggeMeshLight:
         data = struct.pack("<I", duration)
         return False #return self.send_packet(C_SEQUENCE_FADE_DURATION, data, dest)
 
-    def setWhiteBrightness(self, brightness, dest=None):
+    async def setWhiteBrightness(self, brightness, dest=None):
         """
         Args :
             brightness: between 1 and 0x7f
         """
         data = struct.pack('BBB', 0x02 , brightness, 0x06)
-        return self.send_packet(C_WHITE_BRIGHTNESS, data, dest)
+        return await self.send_packet(C_WHITE_BRIGHTNESS, data, dest)
 
-    def setWhiteTemperature(self, temp, dest=None):
+    async def setWhiteTemperature(self, temp, dest=None):
         """
         Args :
             temp: between 0 and 0x64
         """
         data = struct.pack('BBB', 0x62 , temp, self.white_brightness)
-        return self.send_packet(C_WHITE_TEMPERATURE, data, dest)
+        return await self.send_packet(C_WHITE_TEMPERATURE, data, dest)
 
-    def setWhite(self, temp, brightness, dest=None):
+    async def setWhite(self, temp, brightness, dest=None):
         """
         Args :
             temp: between 0 and 0x7f
@@ -595,17 +595,17 @@ class ZenggeMeshLight:
         data = struct.pack('B', temp)
         self.send_packet(C_WHITE_TEMPERATURE, data, dest)
         data = struct.pack('BB', 0x02 , brightness)
-        return self.send_packet(C_WHITE_BRIGHTNESS, data, dest)
+        return await self.send_packet(C_WHITE_BRIGHTNESS, data, dest)
 
-    def on(self, dest=None):
+    async def on(self, dest=None):
         """ Turns the light on.
         """
-        return self.send_packet(OPCODE_SETSTATE, bytes([0xFF,STATEACTION_POWER,1]), dest)
+        return await self.send_packet(OPCODE_SETSTATE, bytes([0xFF,STATEACTION_POWER,1]), dest)
 
-    def off(self, dest=None):
+    async def off(self, dest=None):
         """ Turns the light off.
         """
-        return self.send_packet(OPCODE_SETSTATE, bytes(0xFF,STATEACTION_POWER,0), dest)
+        return await self.send_packet(OPCODE_SETSTATE, bytes([0xFF,STATEACTION_POWER,0]), dest)
 
     async def reconnect(self) -> bool:
         logger.debug(f'[{self.mesh_name}][{self.mac}] Reconnecting')
@@ -634,26 +634,26 @@ class ZenggeMeshLight:
         except Exception as err:
             logger.warning(f'[{self.mesh_name}][{self.mac}] Stop failed: [{type(err).__name__}] {err}')
 
-    def getFirmwareRevision(self):
+    async def getFirmwareRevision(self):
         """
         Returns :
             The firmware version as a null terminated utf-8 string.
         """
-        return self.client.read_gatt_char(FIRMWARE_REV_UUID)
+        return await self.client.read_gatt_char(FIRMWARE_REV_UUID)
 
-    def getHardwareRevision(self):
+    async def getHardwareRevision(self):
         """
         Returns :
             The hardware version as a null terminated utf-8 string.
         """
-        return self.client.read_gatt_char(HARDWARE_REV_UUID)
+        return await self.client.read_gatt_char(HARDWARE_REV_UUID)
 
-    def getModelNumber(self):
+    async def getModelNumber(self):
         """
         Returns :
             The model as a null terminated utf-8 string.
         """
-        return self.client.read_gatt_char(MODEL_NBR_UUID)
+        return await self.client.read_gatt_char(MODEL_NBR_UUID)
 
     @property
     def is_connected(self) -> bool:
