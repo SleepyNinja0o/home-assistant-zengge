@@ -309,7 +309,7 @@ class ZenggeMeshLight:
         await self.mesh_login()
 
         logger.debug(f'[{self.mesh_name}][{self.mac}] Listen for notifications')
-        self.client.start_notify()
+        await self.enable_notify()
 
         logger.debug(f'[{self.mesh_name}][{self.mac}] Send status message')
         self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01')
