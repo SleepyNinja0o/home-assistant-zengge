@@ -382,7 +382,7 @@ class ZenggeMesh(DataUpdateCoordinator):
 
         #devices = await DeviceScanner.async_find_devices(hass=self.hass, scan_timeout=20)
         devices = bluetooth.async_discovered_service_info(self.hass).mapping
-        _LOGGER.debug(f'[{self.mesh_name}] Scan result: {devices}')
+        _LOGGER.debug(f'[{self.mesh_name}] Scan result: {repr(devices.keys())}')
 
         for mesh_id, device_info in self._devices.items():
             if device_info['mac'].upper() in devices.keys() and devices.get(device_info['mac'].upper()).rssi is not None:
