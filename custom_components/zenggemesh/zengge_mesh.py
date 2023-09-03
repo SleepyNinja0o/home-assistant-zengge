@@ -350,6 +350,7 @@ class ZenggeMesh(DataUpdateCoordinator):
             _LOGGER.info('zenggemesh async connect device 3-2...')
             ble_device = bluetooth.async_ble_device_from_address(self.hass, device_info['mac'])
             device = ZenggeMeshLight(device_info['mac'], ble_device, self._mesh_name, self._mesh_password)
+            _LOGGER.info('zenggemesh async connect device 3-3...')
             try:
                 _LOGGER.info("[%s][%s][%s] Trying to connect", self.mesh_name, device_info['name'], device.mac)
                 async with async_timeout.timeout(20):
@@ -366,7 +367,7 @@ class ZenggeMesh(DataUpdateCoordinator):
                 _LOGGER.info('[%s][%s][%s] Failed to connect, trying next device [%s] %s',
                                   self.mesh_name, device_info['name'], device.mac, type(e).__name__, e)
 
-            _LOGGER.debug('[%s][%s][%s] Setting up Bluetooth connection failed, making sure Bluetooth device stops trying', self.mesh_name, device_info['name'], device.mac)
+            _LOGGER.info('[%s][%s][%s] Setting up Bluetooth connection failed, making sure Bluetooth device stops trying', self.mesh_name, device_info['name'], device.mac)
 
             await device.stop()
 
