@@ -59,17 +59,20 @@ class ZenggeMesh(DataUpdateCoordinator):
         #self._command_tread.daemon = True
         #self._command_tread.start()
 
-        def startup(event):
+        async def startup(event):
             _LOGGER.debug('startup')
-            asyncio.run_coroutine_threadsafe(
-                self.async_refresh(), hass.loop
-            ).result()
+            await self._async_get_devices_rssi()
+            #asyncio.run_coroutine_threadsafe(
+            #    self.async_refresh(), hass.loop
+            #).result()
 
-        def shutdown(event):
-            _LOGGER.debug('shutdown')
-            asyncio.run_coroutine_threadsafe(
-                self.async_shutdown(), hass.loop
-            ).result()
+        async def shutdown(event):
+            _LOGGER.info('[%s] Shutdown mesh!!', self.mesh_name)
+            self._shutdown = True
+            await self._disconnect_current_device()
+            #asyncio.run_coroutine_threadsafe(
+            #    self.async_shutdown(), hass.loop
+            #).result()
 
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, startup)
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, shutdown)
