@@ -16,7 +16,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 # import zenggemeshlight from .zenggemeshlight
 from .zenggemeshlight import ZenggeMeshLight
 from .const import DOMAIN
-#from .scanner import DeviceScanner
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -397,7 +396,6 @@ class ZenggeMesh(DataUpdateCoordinator):
 
         self._scanning_devices = True
 
-        #devices = await DeviceScanner.async_find_devices(hass=self.hass, scan_timeout=20)
         devices = bluetooth.async_discovered_service_info(self.hass).mapping
         _LOGGER.debug(f'[{self.mesh_name}] Scan result: {repr(devices.keys())}')
 
