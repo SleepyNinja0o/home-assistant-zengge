@@ -340,10 +340,10 @@ class ZenggeMesh(DataUpdateCoordinator):
         _LOGGER.info('zenggemesh async connect device...')
         while self.is_reconnecting():
             await asyncio.sleep(.01)
-
+        _LOGGER.info('zenggemesh async connect device 2...')
         if self.is_connected():
             return
-
+        _LOGGER.info('zenggemesh async connect device 3...')
         for mesh_id, device_info in self._getConnectableDevices():
             if device_info['mac'] is None:
                 continue
