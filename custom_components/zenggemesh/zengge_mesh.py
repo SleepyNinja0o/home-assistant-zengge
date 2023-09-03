@@ -111,7 +111,7 @@ class ZenggeMesh(DataUpdateCoordinator):
         await self._async_connect_device()
         if not self.is_connected():
             return False
-
+        _LOGGER.info('zenggemesh async update data 2...')
         #if not self._command_tread.is_alive():
         #    raise UpdateFailed("Command tread died!")
 
@@ -121,7 +121,7 @@ class ZenggeMesh(DataUpdateCoordinator):
             _LOGGER.info('async_update: Force disconnect to prevent connection freeze')
             async with async_timeout.timeout(10):
                 await self._disconnect_current_device()
-
+        _LOGGER.info('zenggemesh async update data 3...')
         if self._state['last_rssi_check'] is None:
             try:
                 async with async_timeout.timeout(60):
@@ -129,7 +129,7 @@ class ZenggeMesh(DataUpdateCoordinator):
                     await self._async_get_devices_rssi()
             except Exception as e:
                 _LOGGER.warning('[%s] Fetching RSSI failed - [%s] %s', self.mesh_name, type(e).__name__, e)
-
+        _LOGGER.info('zenggemesh async update data 4...')
         try:
             async with async_timeout.timeout(20):
                 await self.async_request_status(0xffff)
