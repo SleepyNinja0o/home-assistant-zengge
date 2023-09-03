@@ -2,13 +2,6 @@
 
 from __future__ import unicode_literals
 
-#import binascii
-#from abc import ABC
-
-#from pygatt import BLEAddressType
-#from pygatt.backends.backend import DEFAULT_CONNECT_TIMEOUT_S
-#from pygatt.backends.gatttool.device import GATTToolBLEDevice
-#from pygatt.exceptions import NotificationTimeout, NotConnectedError
 from bleak import BleakClient #, BleakScanner
 
 from . import packetutils as pckt

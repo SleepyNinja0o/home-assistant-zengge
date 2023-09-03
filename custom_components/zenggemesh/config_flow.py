@@ -2,7 +2,6 @@
 
 from typing import Mapping, Optional
 import logging
-import pygatt
 
 import voluptuous as vol
 
