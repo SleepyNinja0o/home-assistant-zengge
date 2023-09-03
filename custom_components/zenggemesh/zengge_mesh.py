@@ -107,7 +107,7 @@ class ZenggeMesh(DataUpdateCoordinator):
         return self._connected_bluetooth_device and self._connected_bluetooth_device.reconnecting
 
     async def _async_update_data(self):
-        await self._async_connect_device()
+        self._connect_device()
         if not self.is_connected():
             return False
 
