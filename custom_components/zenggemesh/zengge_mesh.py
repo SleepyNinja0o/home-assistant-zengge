@@ -250,6 +250,9 @@ class ZenggeMesh(DataUpdateCoordinator):
         _LOGGER.info('[%s] Shutdown mesh', self.mesh_name)
         self._shutdown = True
         return await self._disconnect_current_device()
+    
+    async def async_refresh(self):
+        await self._async_get_devices_rssi()
 
     async def _async_add_command_to_queue(self, command: str, params, allow_to_fail: bool = False):
         _LOGGER.info('[%s] Queue command %s %s', self.mesh_name, command, params)
