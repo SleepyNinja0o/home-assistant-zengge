@@ -128,7 +128,7 @@ class ZenggeMesh(DataUpdateCoordinator):
 
         try:
             async with async_timeout.timeout(20):
-                await self.async_request_status(mesh_id)
+                await self.async_request_status(0xffff)
                 #await self._async_add_command_to_queue('requestStatus', {'dest': 0xffff, 'withResponse': True})
         except Exception as e:
             _LOGGER.info('[%s] Requesting status failed - [%s] %s', self.mesh_name, type(e).__name__, e)
