@@ -1,5 +1,4 @@
 """Zengge connect API"""
-from django.utils.encoding import force_bytes, force_str
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.backends import default_backend
@@ -44,9 +43,9 @@ class ZenggeConnect:
     def generate_timestampcheckcode(self):
         SECRET_KEY = "0FC154F9C01DFA9656524A0EFABC994F"
         timestamp = str(int(time.time()*1000))
-        value = force_bytes("ZG" + timestamp)
+        value = ("ZG" + timestamp).encode()
         backend = default_backend()
-        key = force_bytes(SECRET_KEY)
+        key = (SECRET_KEY).encode()
         encryptor = Cipher(algorithms.AES(key), modes.ECB(), backend).encryptor()
         padder = padding.PKCS7(algorithms.AES(key).block_size).padder()
         padded_data = padder.update(value) + padder.finalize()
