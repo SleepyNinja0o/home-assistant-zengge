@@ -207,9 +207,11 @@ class ZenggeMesh(DataUpdateCoordinator):
         self._devices[status['mesh_id']]['update_count'] += 1
 
     async def async_on(self, mesh_id: int):
-        await self._async_add_command_to_queue('on', {'dest': mesh_id})
+        await self._connected_bluetooth_device.on(mesh_id)
+        #await self._async_add_command_to_queue('on', {'dest': mesh_id})
 
     async def async_off(self, mesh_id: int, _attempt: int = 0):
+        await self._connected_bluetooth_device.off(mesh_id)
         await self._async_add_command_to_queue('off', {'dest': mesh_id})
 
     async def async_set_color(self, mesh_id: int, r: int, g: int, b: int, _attempt: int = 0):
