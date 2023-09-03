@@ -128,7 +128,8 @@ class ZenggeMesh(DataUpdateCoordinator):
 
         try:
             async with async_timeout.timeout(20):
-                await self._async_add_command_to_queue('requestStatus', {'dest': 0xffff, 'withResponse': True})
+                await self.async_request_status(mesh_id)
+                #await self._async_add_command_to_queue('requestStatus', {'dest': 0xffff, 'withResponse': True})
         except Exception as e:
             _LOGGER.info('[%s] Requesting status failed - [%s] %s', self.mesh_name, type(e).__name__, e)
 
@@ -154,7 +155,8 @@ class ZenggeMesh(DataUpdateCoordinator):
 
                 self._devices[mesh_id]['status_request_count'] += 1
                 async with async_timeout.timeout(20):
-                    await self._async_add_command_to_queue('requestStatus', {'dest': mesh_id, 'withResponse': True}, True)
+                    await self.async_request_status(mesh_id)
+                    #await self._async_add_command_to_queue('requestStatus', {'dest': mesh_id, 'withResponse': True}, True)
 
                 # Give mesh time to gather status updates
                 await asyncio.sleep(.5)
@@ -206,25 +208,26 @@ class ZenggeMesh(DataUpdateCoordinator):
         self._devices[status['mesh_id']]['last_update'] = dt_util.now()
         self._devices[status['mesh_id']]['update_count'] += 1
 
+    async def async_request_status(self, mesh_id: int):
+        await self._connected_bluetooth_device.requestStatus(mesh_id)
+
     async def async_on(self, mesh_id: int):
         await self._connected_bluetooth_device.on(mesh_id)
-        #await self._async_add_command_to_queue('on', {'dest': mesh_id})
 
     async def async_off(self, mesh_id: int, _attempt: int = 0):
         await self._connected_bluetooth_device.off(mesh_id)
-        await self._async_add_command_to_queue('off', {'dest': mesh_id})
 
     async def async_set_color(self, mesh_id: int, r: int, g: int, b: int, _attempt: int = 0):
-        await self._async_add_command_to_queue('setColor', {'red': r, 'green': g, 'blue': b, 'dest': mesh_id})
+        await self._connected_bluetooth_device.setColor(r,g,b,mesh_id)
 
     async def async_set_color_brightness(self, mesh_id: int, brightness: int, _attempt: int = 0):
-        await self._async_add_command_to_queue('setColorBrightness', {'brightness': brightness, 'dest': mesh_id})
+        await self._connected_bluetooth_device.setColorBrightness(brightness,mesh_id)
 
     async def async_set_white_temperature(self, mesh_id: int, white_temperature: int, _attempt: int = 0):
-        await self._async_add_command_to_queue('setWhiteTemperature', {'temp': white_temperature, 'dest': mesh_id})
+        await self._connected_bluetooth_device.setWhiteTemperature(white_temperature,mesh_id)
 
     async def async_set_white_brightness(self, mesh_id: int, brightness: int, _attempt: int = 0):
-        await self._async_add_command_to_queue('setWhiteBrightness', {'brightness': brightness, 'dest': mesh_id})
+        await self._connected_bluetooth_device.setWhiteBrightness(brightness,mesh_id)
 
     async def _disconnect_current_device(self):
         if not self._connected_bluetooth_device:

@@ -508,16 +508,14 @@ class ZenggeMeshLight:
         Args :
             red, green, blue: between 0 and 0xff
         """
-        data = bytes([0xFF,COLORMODE_RGB, red, green, blue])
-        return await self.send_packet(OPCODE_SETCOLOR, data, dest)
+        return await self.send_packet(OPCODE_SETCOLOR, bytes([0xFF,COLORMODE_RGB,red,green,blue]), dest)
 
     async def setColorBrightness(self, brightness, dest=None):
         """
         Args :
             brightness: a value between 0xa and 0x64 ...
         """
-        data = struct.pack('BBB', 0x02 , brightness, 0x06)
-        return await self.send_packet(C_COLOR_BRIGHTNESS, data, dest)
+        return await self.send_packet(OPCODE_SETSTATE, bytes([0xFF,STATEACTION_BRIGHTNESS,brightness,DIMMINGTARGET_AUTO]), dest)
 
     def setSequenceColorDuration(self, duration, dest=None):
         """
@@ -540,16 +538,15 @@ class ZenggeMeshLight:
         Args :
             brightness: between 1 and 0x7f
         """
-        data = struct.pack('BBB', 0x02 , brightness, 0x06)
-        return await self.send_packet(C_WHITE_BRIGHTNESS, data, dest)
+        return await self.send_packet(OPCODE_SETSTATE, bytes([0xFF,STATEACTION_BRIGHTNESS,brightness,DIMMINGTARGET_AUTO]), dest)
 
     async def setWhiteTemperature(self, temp, dest=None):
         """
         Args :
             temp: between 0 and 0x64
         """
-        data = struct.pack('BBB', 0x62 , temp, self.white_brightness)
-        return await self.send_packet(C_WHITE_TEMPERATURE, data, dest)
+        #OPCODE_SETCOLOR  COLORMODE_CCT
+        return await self.send_packet(OPCODE_SETCOLOR, bytes([0xFF,COLORMODE_CCT,temp,self.white_brightness]), dest)
 
     async def setWhite(self, temp, brightness, dest=None):
         """
@@ -557,10 +554,7 @@ class ZenggeMeshLight:
             temp: between 0 and 0x7f
             brightness: between 1 and 0x7f
         """
-        data = struct.pack('B', temp)
-        self.send_packet(C_WHITE_TEMPERATURE, data, dest)
-        data = struct.pack('BB', 0x02 , brightness)
-        return await self.send_packet(C_WHITE_BRIGHTNESS, data, dest)
+        return await self.send_packet(OPCODE_SETCOLOR, bytes([0xFF,COLORMODE_CCT,255,self.white_brightness]), dest)
 
     async def on(self, dest=None):
         """ Turns the light on.
