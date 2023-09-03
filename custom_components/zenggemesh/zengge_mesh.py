@@ -107,9 +107,12 @@ class ZenggeMesh(DataUpdateCoordinator):
         return self._connected_bluetooth_device and self._connected_bluetooth_device.reconnecting
 
     async def _async_update_data(self):
+        await self._async_connect_device()
+        if not self.is_connected():
+            return False
 
-        if not self._command_tread.is_alive():
-            raise UpdateFailed("Command tread died!")
+        #if not self._command_tread.is_alive():
+        #    raise UpdateFailed("Command tread died!")
 
         # Reconnect bluetooth every 2 ours to prevent connection freeze
         if self._state['last_connection'] is not None \
