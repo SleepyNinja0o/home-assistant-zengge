@@ -11,9 +11,6 @@
   "issue_tracker": "https://github.com/SleepyNinja0o/home-assistant-zengge/issues",
   "requirements": [
     "pexpect>=4.6.0",
-    "pycryptodome>=3.17",
-    "pygatt[GATTTOOL]>=4.0.5",
-    "django",
     "cryptography"
   ],
   "version": "0.1.1"
