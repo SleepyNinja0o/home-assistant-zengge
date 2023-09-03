@@ -347,7 +347,7 @@ class ZenggeMesh(DataUpdateCoordinator):
         for mesh_id, device_info in self._getConnectableDevices():
             if device_info['mac'] is None:
                 continue
-
+            _LOGGER.info('zenggemesh async connect device 3-2...')
             ble_device = bluetooth.async_ble_device_from_address(self.hass, device_info['mac'])
             device = ZenggeMeshLight(device_info['mac'], ble_device, self._mesh_name, self._mesh_password)
             try:
@@ -369,6 +369,8 @@ class ZenggeMesh(DataUpdateCoordinator):
             _LOGGER.debug('[%s][%s][%s] Setting up Bluetooth connection failed, making sure Bluetooth device stops trying', self.mesh_name, device_info['name'], device.mac)
 
             await device.stop()
+
+        _LOGGER.info('zenggemesh async connect device 4...')
 
         if self._connected_bluetooth_device is not None:
             self._connected_bluetooth_device.status_callback = self.mesh_status_callback
