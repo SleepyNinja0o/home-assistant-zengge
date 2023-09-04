@@ -2,9 +2,12 @@
   "title": "Zengge Mesh lights",
   "config": {
     "step": {
-      "user" :{
+      "import_select" :{
         "title": "Select import method",
         "description": "Select an input method to import devices intp HA",
+        "data": {
+          "type": "Import Type"
+        }
       },
       "confirm": {
         "description": "[%key:common::config_flow::description::confirm_setup%]"
@@ -51,7 +54,8 @@
     "abort": {
       "single_instance_allowed": "[%key:common::config_flow::abort::single_instance_allowed%]",
       "no_devices_found": "[%key:common::config_flow::abort::no_devices_found%]",
-      "device_not_found": "Could not connect to device"
+      "device_not_found": "Could not connect to device",
+      "finished_test": "Test finished!"
     }
   }
 }

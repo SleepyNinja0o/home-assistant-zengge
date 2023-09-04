@@ -11,7 +11,13 @@ from homeassistant.components import bluetooth
 from homeassistant import config_entries
 from homeassistant.const import (
     CONF_USERNAME,
-    CONF_PASSWORD
+    CONF_PASSWORD,
+    CONF_TYPE
+)
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
 )
 from .const import DOMAIN, CONF_MESH_NAME, CONF_MESH_PASSWORD, CONF_MESH_KEY
 from .zengge_connect import ZenggeConnect
@@ -37,7 +43,8 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._mesh_info: Optional[Mapping] = None
 
     async def async_step_user(self, user_input: Optional[Mapping] = None):
-        return await self.async_step_zengge_connect()
+        return await self.async_step_import_select()
+        #return await self.async_step_zengge_connect()
 
         # todo: fix manual connect
         _LOGGER.debug("async_step_user: user_input: %s", user_input)
@@ -119,6 +126,30 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="select_device",
             data_schema=data_schema,
         )
+    
+    async def async_step_import_select(self, user_input: Optional[Mapping] = None):
+        errors = {}
+        config_type: str = ""
+
+        if user_input is not None:
+            config_type = user_input.get(CONF_TYPE)
+
+        if config_type:
+            print(config_type)
+            return self.async_abort(reason="finished_test")
+        
+        if user_input is None or config_type is None or errors:
+            return self.async_show_form(
+                step_id="import_select",
+                data_schema=vol.Schema({
+                    vol.Required(CONF_TYPE): SelectSelector(
+                        SelectSelectorConfig(
+                            mode=SelectSelectorMode.DROPDOWN, options=["Zengge Cloud","Manual"]
+                        )
+                    ),
+                }),
+                errors=errors,
+            )
 
     async def async_step_zengge_connect(self, user_input: Optional[Mapping] = None):
 
