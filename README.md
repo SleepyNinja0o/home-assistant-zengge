@@ -33,7 +33,7 @@ Do you have [HACS](https://hacs.xyz/) installed?
 1. Enjoy :)
 
 ## Troubleshooting
-**As of right now, only the first place is retrieved from the Hao Deng servers, currently working on this**
+**As of right now, only the first place is retrieved from the Hao Deng servers, currently working on this**<br/><br/>
 **Make sure that at least *1 device/light* is in *bluetooth range* of your Home Assistant server.**
 
 If you run into issues during setup or controlling the lights please increase logging and provide them when creating an issue:
