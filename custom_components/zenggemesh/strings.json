@@ -2,6 +2,10 @@
   "title": "Zengge Mesh lights",
   "config": {
     "step": {
+      "user" :{
+        "title": "Select import method",
+        "description": "Select an input method to import devices intp HA",
+      },
       "confirm": {
         "description": "[%key:common::config_flow::description::confirm_setup%]"
       },
