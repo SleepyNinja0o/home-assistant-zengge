@@ -137,7 +137,7 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 zengge_connect = await self.hass.async_add_executor_job(create_zengge_connect_object, username, password)
             except Exception as e:
-                _LOGGER.error('Can not login to Zengge cloud server [%s]', e)
+                _LOGGER.error('Can not login to Zengge cloud [%s]', e)
                 errors[CONF_PASSWORD] = 'cannot_connect'
 
         if user_input is None or zengge_connect is None or errors:
