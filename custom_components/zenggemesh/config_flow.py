@@ -185,6 +185,7 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             if device['deviceType'] == 65:
                 typeStr = 'light|color|temperature|dimming'
             else:
+                _LOGGER.warning('deviceType #: %s', device['deviceType'])
                 typeStr = 'light|color|temperature|dimming'
 
             devices.append({
