@@ -184,6 +184,8 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 device['versionNum'] = None
             if device['deviceType'] == 65:
                 typeStr = 'light|color|temperature|dimming'
+            else:
+                typeStr = 'light|color|temperature|dimming'
 
             devices.append({
                 'mesh_id': int(device['meshAddress']),
