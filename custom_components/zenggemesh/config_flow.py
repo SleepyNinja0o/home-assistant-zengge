@@ -13,7 +13,6 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD
 )
-#from .scanner import DeviceScanner
 from .const import DOMAIN, CONF_MESH_NAME, CONF_MESH_PASSWORD, CONF_MESH_KEY
 from .zengge_connect import ZenggeConnect
 
@@ -38,12 +37,6 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._mesh_info: Optional[Mapping] = None
 
     async def async_step_user(self, user_input: Optional[Mapping] = None):
-        #_LOGGER.info('Testing stuff here...')
-        #ble_device = bluetooth.async_get_scanner(self.hass).discover(timeout=15,return_adv=True)
-        #ble_device = bluetooth.async_ble_device_from_address(self.hass, "08:65:F0:05:1F:D6")
-        #_LOGGER.info('Object: '+repr(dir(ble_device)))
-        #_LOGGER.info('Object Raw: '+repr(ble_device))
-        #return
         return await self.async_step_zengge_connect()
 
         # todo: fix manual connect
@@ -159,7 +152,6 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         devices = []
         for device in await zengge_connect.devices():
-        #for device in await self.hass.async_add_executor_job(zengge_connect.devices()):
             _LOGGER.debug('Processing device - %s', device)
             if 'deviceType' not in device:
                 _LOGGER.warning('Skipped device, missing deviceType - %s', device)
@@ -203,7 +195,6 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="no_devices_found")
 
         credentials = zengge_connect.credentials()
-        #credentials = await self.hass.async_add_executor_job(zengge_connect.credentials())
 
         data = {
             CONF_MESH_NAME: credentials['meshKey'],

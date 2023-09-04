@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 
-from bleak import BleakClient #, BleakScanner
+from bleak import BleakClient
 
 from . import packetutils as pckt
 
@@ -23,8 +23,6 @@ C_MESH_GROUP = 0xd7
 #: command again replaces the previous mesh id.
 #: Data : the new mesh id, 2 bytes in little endian order
 C_MESH_ADDRESS = 0xe0
-
-#:
 C_MESH_RESET = 0xe3
 
 #: On/Off command. Data : [0x01] and one byte 0, 1
@@ -40,22 +38,6 @@ C_MESH_RESET = 0xe3
 #: Decreasing brightness command. Data: [0x04] and one byte for brightness percentage 0x1 to 0x64 (0 or > 100, default decrease by 10%)
 C_POWER = 0xd0
 
-#: Data : one byte
-#SN - Not used??
-#C_LIGHT_MODE = 0x33
-
-#: Data : one byte 0 to 6
-#SN - Zengge does not support presets
-#C_PRESET = 0xc8
-
-#: White temperature. one byte 0 to 0x7f
-#SN - Not used by Zengge
-C_WHITE_TEMPERATURE = 0xe2
-
-#: one byte 1 to 0x7f
-#SN - Not used by Zengge
-C_WHITE_BRIGHTNESS = 0xd0
-
 #SN - Data: 4 bytes : [Change Mode] [Value1] [Value2] [Value3]
 #  Change mode of light (RGB, Warm, CCT/Lum, AuxLight, ColorTemp/Lum/AuxLight)
 #    0x60 is the mode for static RGB (Value1,Value2,Value3 stand for RGB values 0-255)
@@ -70,29 +52,12 @@ C_COLOR_CCTLUM = 0x62
 C_COLOR_AUX = 0x63
 C_COLOR_CCTLUMAUX = 0x64
 
-#: one byte : 0xa to 0x64 ....
-#SN - Zengge does not use this opcode
-C_COLOR_BRIGHTNESS = 0xd0
-
-#: Data 4 bytes : How long a color is displayed in a sequence in milliseconds as
-#:   an integer in little endian order
-#SN - Zengge does not use this opcode
-#C_SEQUENCE_COLOR_DURATION = 0xf5
-
-#: Data 4 bytes : Duration of the fading between colors in a sequence, in
-#:   milliseconds, as an integer in little endian order
-#SN - Zengge does not use this opcode
-#C_SEQUENCE_FADE_DURATION = 0xf6
-
 #: 7 bytes [Year-Low][Year-High][Month][Day][Hours][Minutes][Seconds]
 C_TIME = 0xe4
 
 #: 7 bytes [Year-Low][Year-High][Month][Day][Hours][Minutes][Seconds]
-C_GET_TIME = 0xe4
-
-#: 10 bytes
-#SN - Zengge does not use this opcode
-#C_ALARMS = 0xe5
+#: Data to Retrieve [0x10]
+C_GET_TIME = 0xe8
 
 OPCODE_SETCOLOR = 0xe2
 OPCODE_SETCCT = 0xf4
@@ -215,7 +180,7 @@ class ZenggeMeshLight:
         self._reconnecting = False
         self._notify_enabled = False
         self.reconnect_counter = 0
-        self.processing_command = False
+        self.processing_command = False #Prevent multiple commands being sent at same time
 
         self.mesh_name = mesh_name
         self.mesh_password = mesh_password
@@ -231,7 +196,7 @@ class ZenggeMeshLight:
         self.state = False
         self.status_callback = None
 
-    async def enable_notify(self): #Huge thanks to 'cocoto' for helping me figure out this issue with Zengge!!
+    async def enable_notify(self): #Huge thanks to '@cocoto' for helping me figure out this issue with Zengge!
         await self.send_packet(0x01,bytes([]),self.mesh_id,uuid=STATUS_CHAR_UUID)
         print("Enable notify packet sent...")
         await asyncio.sleep(.5)
@@ -427,12 +392,12 @@ class ZenggeMeshLight:
 
         self._parseStatusResult(message)
 
-    def _parseStatusResult(self, data): ###THIS NEEDS MODIFIED FOR ZENGGE###
+    def _parseStatusResult(self, data):
         command = struct.unpack('B', data[7:8])[0]
         status = {}
-        if command == OPCODE_STATUS_RECEIVED: #This does not return any status info, only that the device is online
+        if command == OPCODE_STATUS_RECEIVED: #This does not return any useful status info, only that the device is online
             mesh_address = struct.unpack('B', data[3:4])[0]
-        elif command == OPCODE_NOTIFICATION_RECEIVED:
+        elif command == OPCODE_NOTIFICATION_RECEIVED:  #Each notification can include info for 2 devices
             device_1_data = struct.unpack('BBBBB', data[10:15])
             device_2_data = struct.unpack('BBBBB', data[15:20])
             if (device_1_data[0] != 0):
@@ -443,7 +408,7 @@ class ZenggeMeshLight:
                 cct = color = device_1_data[4]
                 if(mode == 63 or mode == 42):
                     color_mode = 'rgb'
-                    rgb = ZenggeColor.decode(color) #Converts from 1 value(kelvin) to RGB
+                    rgb = ZenggeColor.decode(color) #Converts from 1 value(hue) to RGB
                 else:
                     color_mode = 'white'
                     rgb = [0,0,0]
@@ -479,7 +444,7 @@ class ZenggeMeshLight:
                 cct = color = device_2_data[4]
                 if(mode == 63 or mode == 42):
                     color_mode = 'rgb'
-                    rgb = ZenggeColor.decode(color) #Converts from 1 value(kelvin) to RGB
+                    rgb = ZenggeColor.decode(color) #Converts from 1 value(hue) to RGB
                 else:
                     color_mode = 'white'
                     rgb = [0,0,0]
@@ -515,7 +480,7 @@ class ZenggeMeshLight:
             await asyncio.sleep(.1)
         self.processing_command = True
         logger.debug(f'[{self.mesh_name}][{self.mac}] requestStatus({dest})')
-        reply = await self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01', False) #Zengge can't use Status request to receive device details, need notification request
+        reply = await self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01', False) #Zengge can't use Status request to receive device details, need notification requests
         self.processing_command = False
         return reply
 
@@ -533,7 +498,7 @@ class ZenggeMeshLight:
         """
         return await self.send_packet(OPCODE_SETSTATE, bytes([0xFF,STATEACTION_BRIGHTNESS,brightness,DIMMINGTARGET_AUTO]), dest)
 
-    def setSequenceColorDuration(self, duration, dest=None):
+    def setSequenceColorDuration(self, duration, dest=None): ###NOT IMPLEMENTED###
         """
         Args :
             duration: in milliseconds.
@@ -541,7 +506,7 @@ class ZenggeMeshLight:
         data = struct.pack("<I", duration)
         return False #return self.send_packet(C_SEQUENCE_COLOR_DURATION, data, dest)
 
-    def setSequenceFadeDuration(self, duration, dest=None):
+    def setSequenceFadeDuration(self, duration, dest=None): ###NOT IMPLEMENTED###
         """
         Args:
             duration: in milliseconds.

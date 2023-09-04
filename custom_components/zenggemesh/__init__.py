@@ -7,7 +7,6 @@ from .zengge_mesh import ZenggeMesh
 from .const import DOMAIN, CONF_MESH_NAME, CONF_MESH_PASSWORD, CONF_MESH_KEY
 
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
-#from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant

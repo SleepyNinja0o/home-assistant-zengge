@@ -74,7 +74,7 @@ class ZenggeMeshSensor(CoordinatorEntity, SensorEntity):
         """Get device info."""
         return DeviceInfo(
             identifiers={(DOMAIN, self._mesh.identifier)},
-            name='Zengge mesh',
+            name='Zengge Mesh',
             manufacturer='Zengge',
             model='Bluetooth Mesh',
         )
