@@ -46,6 +46,12 @@ logger:
   logs:
      custom_components.zenggemesh: debug
 ```
+Restart Home Assistant for logging to begin.<br/>
+Logs can be found under Settings - System - Logs - Home Assistant Core<br/>
+Be sure to click **Load Full Logs** in order to retrieve all logs.<br/>
+
 ## Credits
-The majority of this work is based on the home-assistant-awox integration created by @fsaris to control AwoX mesh light bulbs.<br/>
-Huge shotout to him for all his hard work on it!
+The majority of this work was based on the [home-assistant-awox](https://github.com/fsaris/home-assistant-awox) integration created by **@fsaris** .<br/>
+Huge shotout to **@fsaris** for all his hard work!<br/><br/>
+
+Also many kudos to **@donparlor** and **@cocoto** for their continued support on this project!<br/>It is appreciated very much!
