@@ -2,10 +2,6 @@
 import logging
 import asyncio
 import async_timeout
-import queue
-import threading
-import time
-import re
 import homeassistant.util.dt as dt_util
 from datetime import timedelta
 from homeassistant.core import HomeAssistant, callback, CALLBACK_TYPE

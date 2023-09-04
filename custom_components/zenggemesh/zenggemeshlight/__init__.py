@@ -214,6 +214,7 @@ class ZenggeMeshLight:
 
         self._reconnecting = False
         self.reconnect_counter = 0
+        self.processing_command = False
 
         self.mesh_name = mesh_name
         self.mesh_password = mesh_password
@@ -264,6 +265,9 @@ class ZenggeMeshLight:
             dest: The destination mesh id, as a number. If None, this lightbulb's
                 mesh id will be used.
         """
+        while self.processing_command == True:
+            await asyncio.sleep(.1)
+        self.processing_command = True
         assert (self.session_key)
         if dest == None: dest = self.mesh_id
         packet = pckt.make_command_packet(self.session_key, self.mac, dest, command, data)
@@ -491,8 +495,10 @@ class ZenggeMeshLight:
                     self.status_callback(status)
         else:
             print(f'[{self.mesh_name}][{self.mac}] Unknown command [{command}]')
+        self.processing_command = False
 
     async def requestStatus(self, dest=0xffff, withResponse=False):
+        self.processing_command = True
         logger.debug(f'[{self.mesh_name}][{self.mac}] requestStatus({dest})')
         return await self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01', False) #Zengge can't use Status request to receive device details, need notification request
 
