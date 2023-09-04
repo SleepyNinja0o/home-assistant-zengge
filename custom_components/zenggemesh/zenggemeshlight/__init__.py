@@ -213,6 +213,7 @@ class ZenggeMeshLight:
         self.status_char = None
 
         self._reconnecting = False
+        self._notify_enabled = False
         self.reconnect_counter = 0
         self.processing_command = False
 
@@ -233,7 +234,11 @@ class ZenggeMeshLight:
     async def enable_notify(self): #Huge thanks to 'cocoto' for helping me figure out this issue with Zengge!!
         await self.send_packet(0x01,bytes([]),self.mesh_id,uuid=STATUS_CHAR_UUID)
         print("Enable notify packet sent...")
-        await self.client.start_notify(STATUS_CHAR_UUID, self._handleNotification)
+        await asyncio.sleep(.5)
+        print("Executing bleak start_notify...")
+        reply = await self.client.start_notify(STATUS_CHAR_UUID, self._handleNotification)
+        print("Executed bleak start_notify successfully...")
+        return reply
 
     async def mesh_login(self):
         if self.client == None:
@@ -241,9 +246,11 @@ class ZenggeMeshLight:
         session_random = urandom(8)
         message = pckt.make_pair_packet(self.mesh_name.encode(), self.mesh_password.encode(), session_random)
         logger.info(f'[{self.mesh_name}][{self.mac}] Send pair message {message}')
+        self.processing_command = True
         pairReply = await self.client.write_gatt_char(PAIR_CHAR_UUID, bytes(message), True)
         await asyncio.sleep(0.3)
         reply = await self.client.read_gatt_char(PAIR_CHAR_UUID)
+        self.processing_command = False
         logger.debug(f"[{self.mesh_name}][{self.mac}] Read {reply} from characteristic {PAIR_CHAR_UUID}")
 
         self.session_key = pckt.make_session_key(self.mesh_name.encode(), self.mesh_password.encode(), session_random, reply[1:9])
@@ -273,8 +280,11 @@ class ZenggeMeshLight:
         packet = pckt.make_command_packet(self.session_key, self.mac, dest, command, data)
         try:
             print(f'[{self.mesh_name}][{self.mac}] Writing command {command} data {repr(data)}')
-            return await self.client.write_gatt_char(uuid, packet)
+            reply = await self.client.write_gatt_char(uuid, packet)
+            self.processing_command = False
+            return reply
         except Exception as err:
+            self.processing_command = False
             print(f'[{self.mesh_name}][{self.mac}] Command failed, attempt: {attempt} - [{type(err).__name__}] {err}')
             if attempt < 2:
                 self.connect()
@@ -309,15 +319,17 @@ class ZenggeMeshLight:
         await self.enable_notify()
 
         logger.debug(f'[{self.mesh_name}][{self.mac}] Send status message')
-        await self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01')
+        await self.requestStatus()
+        self._notify_enabled = True
         return True
 
-    def _disconnectCallback(self, event):
+    async def _disconnectCallback(self, event):
         logger.info(f'[{self.mesh_name}][{self.mac}] Disconnected by backend')
         if self.session_key:
             logger.info(f'[{self.mesh_name}][{self.mac}] Try to reconnect...')
-            reconnect_thread = threading.Thread(target=self._auto_reconnect, name='Reconnect-' + self.mac)
-            reconnect_thread.start()
+            await self._auto_reconnect()
+            #reconnect_thread = threading.Thread(target=self._auto_reconnect, name='Reconnect-' + self.mac)
+            #reconnect_thread.start()
 
     async def _auto_reconnect(self):
         self.session_key = None
@@ -425,8 +437,9 @@ class ZenggeMeshLight:
             device_2_data = struct.unpack('BBBBB', data[15:20])
             if (device_1_data[0] != 0):
                 mesh_address = device_1_data[0]
-                mode = device_1_data[3]
+                connected = device_1_data[1]
                 brightness = device_1_data[2]
+                mode = device_1_data[3]
                 cct = color = device_1_data[4]
                 if(mode == 63 or mode == 42):
                     color_mode = 'rgb'
@@ -437,7 +450,7 @@ class ZenggeMeshLight:
                 status = {
                     'type': 'status',
                     'mesh_id': mesh_address,
-                    'state': brightness != 0,
+                    'state': brightness != 0 if connected != 0 else None,
                     'color_mode': color_mode,
                     'red': rgb[0],
                     'green': rgb[1],
@@ -460,8 +473,9 @@ class ZenggeMeshLight:
                     self.status_callback(status)
             if (device_2_data[0] != 0):
                 mesh_address = device_2_data[0]
-                mode = device_2_data[3]
+                connected = device_2_data[1]
                 brightness = device_2_data[2]
+                mode = device_2_data[3]
                 cct = color = device_2_data[4]
                 if(mode == 63 or mode == 42):
                     color_mode = 'rgb'
@@ -472,7 +486,7 @@ class ZenggeMeshLight:
                 status = {
                     'type': 'notification',
                     'mesh_id': mesh_address,
-                    'state': brightness != 0,
+                    'state': brightness != 0 if connected != 0 else None,
                     'color_mode': color_mode,
                     'red': rgb[0],
                     'green': rgb[1],
@@ -495,12 +509,15 @@ class ZenggeMeshLight:
                     self.status_callback(status)
         else:
             print(f'[{self.mesh_name}][{self.mac}] Unknown command [{command}]')
-        self.processing_command = False
 
     async def requestStatus(self, dest=0xffff, withResponse=False):
+        while self.processing_command == True:
+            await asyncio.sleep(.1)
         self.processing_command = True
         logger.debug(f'[{self.mesh_name}][{self.mac}] requestStatus({dest})')
-        return await self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01', False) #Zengge can't use Status request to receive device details, need notification request
+        reply = await self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01', False) #Zengge can't use Status request to receive device details, need notification request
+        self.processing_command = False
+        return reply
 
     async def setColor(self, red, green, blue, dest=None):
         """
@@ -615,7 +632,7 @@ class ZenggeMeshLight:
 
     @property
     def is_connected(self) -> bool:
-        return self.session_key is not None and self.client and self.client.is_connected
+        return self.session_key is not None and self.client and self.client.is_connected and self._notify_enabled
 
     @property
     def reconnecting(self) -> bool:

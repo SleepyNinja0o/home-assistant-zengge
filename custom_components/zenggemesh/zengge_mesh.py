@@ -341,20 +341,16 @@ class ZenggeMesh(DataUpdateCoordinator):
         _LOGGER.info('zenggemesh async connect device...')
         while self.is_reconnecting():
             await asyncio.sleep(.01)
-        _LOGGER.info('zenggemesh async connect device 2...')
         if self.is_connected():
             return
-        _LOGGER.info('zenggemesh async connect device 3...')
         for mesh_id, device_info in self._getConnectableDevices():
             if device_info['mac'] is None:
                 continue
-            _LOGGER.info('zenggemesh async connect device 3-2...')
             ble_device = bluetooth.async_ble_device_from_address(self.hass, device_info['mac'])
             device = ZenggeMeshLight(device_info['mac'], ble_device, self._mesh_name, self._mesh_password)
-            _LOGGER.info('zenggemesh async connect device 3-3...')
             try:
                 _LOGGER.info("[%s][%s][%s] Trying to connect", self.mesh_name, device_info['name'], device.mac)
-                async with async_timeout.timeout(20):
+                async with async_timeout.timeout(30):
                     if await device.connect():
                         self._connected_bluetooth_device = device
                         self._state['connected_device'] = device_info['name']
@@ -386,7 +382,6 @@ class ZenggeMesh(DataUpdateCoordinator):
         return filter(lambda device: device[1]['rssi'] > -9999, sorted(self._devices.items(), key=lambda t: t[1]['rssi'], reverse=True))
 
     async def _async_get_devices_rssi(self):
-
         if self._scanning_devices:
             _LOGGER.info(f'[{self.mesh_name}] Already scanning for devices')
             return
