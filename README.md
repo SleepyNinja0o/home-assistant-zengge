@@ -34,3 +34,17 @@ Do you have [HACS](https://hacs.xyz/) installed?
 1. The system will download you light list and add them to Home Assistant
 1. Once the system could connect to one of the lights your lights will show up as _available_ and can be controlled from HA   
 1. Enjoy :)
+
+## Troubleshooting
+**Make sure that at least *1 device/light* is in *bluetooth range* of your Home Assistant server.**
+
+If you run into issues during setup or controlling the lights please increase logging and provide them when creating an issue:
+
+Add `custom_components.zenggemesh: debug` to the `logger` config in you `configuration.yaml`:
+
+```yaml
+logger:
+  default: error
+  logs:
+     custom_components.zenggemesh: debug
+```
