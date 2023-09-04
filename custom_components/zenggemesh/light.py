@@ -216,7 +216,7 @@ class ZenggeLight(CoordinatorEntity, LightEntity):
         """Return the color temperature in mired."""
         if self._white_temperature is None:
             return None
-        return convert_value_to_available_range(self._white_temperature, 0, int(0x64), self.min_mireds, self.max_mireds)
+        return convert_value_to_available_range(self._white_temperature, 0, 0x64, self.min_mireds, self.max_mireds)
 
     @property
     def brightness(self):
@@ -234,12 +234,12 @@ class ZenggeLight(CoordinatorEntity, LightEntity):
     @property
     def min_mireds(self):
         # 6500 Kelvin
-        return 1
+        return 153
 
     @property
     def max_mireds(self):
         # 2700 Kelvin
-        return 255
+        return 370
 
     @property
     def is_on(self):
@@ -272,7 +272,7 @@ class ZenggeLight(CoordinatorEntity, LightEntity):
                 status['color_brightness'] = device_brightness
 
         if ATTR_COLOR_TEMP in kwargs:
-            device_white_temp = convert_value_to_available_range(kwargs[ATTR_COLOR_TEMP], self.min_mireds, self.max_mireds, 0, int(0x7f))
+            device_white_temp = convert_value_to_available_range(kwargs[ATTR_COLOR_TEMP], self.min_mireds, self.max_mireds, 0, 0x64)
             await self._mesh.async_set_white_temperature(self._mesh_id, device_white_temp)
             status['state'] = True
             status['white_temperature'] = device_white_temp
@@ -295,11 +295,11 @@ class ZenggeLight(CoordinatorEntity, LightEntity):
         if 'state' in status:
             self._state = status['state']
         if 'white_brightness' in status:
-            self._white_brightness = status['white_brightness']
+            self._white_brightness = convert_value_to_available_range(status['white_brightness'], 0, 100, 0, 255)
         if 'white_temperature' in status:
-            self._white_temperature = status['white_temperature']
+            self._white_temperature = convert_value_to_available_range(status['white_temperature'], 0, 0x64, self.min_mireds, self.max_mireds)
         if 'color_brightness' in status:
-            self._color_brightness = status['color_brightness']
+            self._color_brightness = convert_value_to_available_range(status['color_brightness'], 0, 100, 0, 255)
         if 'red' in status:
             self._red = status['red']
         if 'green' in status:
