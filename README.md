@@ -23,8 +23,8 @@ Do you have [HACS](https://hacs.xyz/) installed?
 2. Create another folder `zenggemesh` in the `custom_components` folder. Copy all files from `custom_components/zenggemesh` into the `zenggemesh` folder.
 
 ### Setup
-1. In Home Assistant click on `Configuration`
-1. Click on `Integrations`
+1. In Home Assistant click on `Settings`
+1. Click on `Devices & services`
 1. Click on `+ Add integration`
 1. Search for and select `Zengge Mesh`
 1. Enter you `username` and `password` you also use in the **Hao Deng** app
@@ -33,6 +33,7 @@ Do you have [HACS](https://hacs.xyz/) installed?
 1. Enjoy :)
 
 ## Troubleshooting
+**As of right now, only the first place is retrieved from the Hao Deng servers, currently working on this**
 **Make sure that at least *1 device/light* is in *bluetooth range* of your Home Assistant server.**
 
 If you run into issues during setup or controlling the lights please increase logging and provide them when creating an issue:
