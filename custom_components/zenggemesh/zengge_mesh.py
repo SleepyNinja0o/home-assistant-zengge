@@ -73,6 +73,7 @@ class ZenggeMesh(DataUpdateCoordinator):
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, startup)
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, shutdown)
 
+
     @property
     def mesh_name(self) -> str:
         return self._mesh_name
@@ -105,6 +106,9 @@ class ZenggeMesh(DataUpdateCoordinator):
         return self._connected_bluetooth_device and self._connected_bluetooth_device.reconnecting
 
     async def _async_update_data(self):
+        if self.state['last_rssi_check'] is None:
+            await self._async_get_devices_rssi()
+            return
         _LOGGER.info('zenggemesh async update data...')
         await self._async_connect_device()
         if not self.is_connected():
