@@ -252,7 +252,7 @@ class ZenggeMeshLight:
             self.processing_command = False
             print(f'[{self.mesh_name}][{self.mac}] Command failed, attempt: {attempt} - [{type(err).__name__}] {err}')
             if attempt < 2:
-                self.connect()
+                await self.connect()
                 return self.send_packet(command, data, dest, withResponse, attempt+1)
             else:
                 self.session_key = None
@@ -276,7 +276,9 @@ class ZenggeMeshLight:
             logger.info("Connecting with BLEDevice")
         else:
             self.client = BleakClient(self.mac, timeout=15, disconnected_callback=self._disconnectCallback)
+        
         await self.client.connect()
+        
         logger.info("[%s][%s] connected! Logging into mesh...", self.mesh_name, self.mac)
         await self.mesh_login()
 
