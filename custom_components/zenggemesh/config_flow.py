@@ -153,6 +153,10 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         devices = []
         for device in await zengge_connect.devices():
             _LOGGER.debug('Processing device - %s', device)
+            if 'wiringType' in device:
+                if device['wiringType'] == 0:
+                    _LOGGER.warning('Skipped device, wiringType of 0 - %s', device)
+                    continue
             if 'deviceType' not in device:
                 _LOGGER.warning('Skipped device, missing deviceType - %s', device)
                 continue

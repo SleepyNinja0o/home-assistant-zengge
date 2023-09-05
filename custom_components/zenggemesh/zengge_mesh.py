@@ -114,12 +114,12 @@ class ZenggeMesh(DataUpdateCoordinator):
         #    raise UpdateFailed("Command tread died!")
 
         # Reconnect bluetooth every 2 ours to prevent connection freeze
-        if self._state['last_connection'] is not None \
-                and self._state['last_connection'] < dt_util.now() - timedelta(hours=2):
-            _LOGGER.info('async_update: Force disconnect to prevent connection freeze')
-            async with async_timeout.timeout(10):
-                await self._disconnect_current_device()
-        _LOGGER.info('zenggemesh async update data 3...')
+        #if self._state['last_connection'] is not None \
+        #        and self._state['last_connection'] < dt_util.now() - timedelta(hours=2):
+        #    _LOGGER.info('async_update: Force disconnect to prevent connection freeze')
+        #    async with async_timeout.timeout(10):
+        #        await self._disconnect_current_device()
+        #_LOGGER.info('zenggemesh async update data 3...')
         if self._state['last_rssi_check'] is None:
             try:
                 async with async_timeout.timeout(60):
