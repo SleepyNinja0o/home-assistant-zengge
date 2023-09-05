@@ -161,7 +161,7 @@ class ZenggeColor:
         return ZenggeColor._hsl_to_rgb(ZenggeColor._h255_to_h360(color))
 
 class ZenggeMeshLight:
-    def __init__(self, mac, ble_device=None, mesh_name="ZenggeMesh", mesh_password="ZenggeTechnology", mesh_id=0x0211, hass=None):
+    def __init__(self, mac, ble_device=None, mesh_name="ZenggeMesh", mesh_password="ZenggeTechnology", mesh_id=0x0211, hass=None, disconnect_callback=None):
         """
         Args :
             mac: The light's MAC address as a string in the form AA:BB:CC:DD:EE:FF
@@ -172,6 +172,7 @@ class ZenggeMeshLight:
         self.mac = mac
         self.mesh_id = mesh_id
         self.hass = hass
+        self._disconnect_callback = disconnect_callback
         self.ble_device = ble_device
         self.client = None
         self.session_key = None
@@ -287,17 +288,9 @@ class ZenggeMeshLight:
         await self.mesh_login()
 
         logger.info(f'[{self.mesh_name}][{self.mac}] Enabling notifications on device')
-        try:
-            await self.enable_notify()
-            self.reconnect_counter = 0
-        except:
-            if self.reconnect_counter < 2:
-                self._reconnecting = True
-                self.reconnect_counter += 1
-                await self.connect() #Retry connection 1 more time
-                return
+        await self.enable_notify()
 
-        logger.debug(f'[{self.mesh_name}][{self.mac}] Send status message')
+        logger.info(f'[{self.mesh_name}][{self.mac}] Send status message')
         await self.requestStatus()
         self._reconnecting = False
         self._notify_enabled = True
@@ -305,6 +298,7 @@ class ZenggeMeshLight:
 
     def _disconnectCallback(self, event):
         logger.info(f'[{self.mesh_name}][{self.mac}] Disconnected by backend...Will reconnect within 30 secs')
+        self._disconnect_callback()
         #self.hass.async_create_task(self._auto_reconnect())
         #if self.session_key:
             #logger.info(f'[{self.mesh_name}][{self.mac}] Try to reconnect...')

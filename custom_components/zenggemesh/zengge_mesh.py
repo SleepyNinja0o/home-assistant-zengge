@@ -110,17 +110,16 @@ class ZenggeMesh(DataUpdateCoordinator):
         return self._connected_bluetooth_device and self._connected_bluetooth_device.reconnecting
 
     async def _async_update_data(self):
-        if self.state['last_rssi_check'] is None and self._startup == False: #Run RSSI check if new integration (no restart required)
-            _LOGGER.info('zenggemesh async update data - RSSI Check Startup False...')    
+        if self._state['last_rssi_check'] is None: #Run RSSI check if new integration (no restart required)
+            _LOGGER.info('zenggemesh async update data - RSSI Check')
             await self._async_get_devices_rssi()
             return
         _LOGGER.info('zenggemesh async update data...')
 
-        await self._async_connect_device()
         if not self.is_connected():
-            if not self.last_update_success:
-                self.update_status_of_all_devices_to_disabled()
-            self.last_update_success = False
+            await self._async_connect_device()
+
+        if not self.is_connected():
             return False
         _LOGGER.info('zenggemesh async update data 2...')
         #if not self._command_tread.is_alive():
@@ -196,6 +195,8 @@ class ZenggeMesh(DataUpdateCoordinator):
                 device_info['callback']({'state': None})
                 self._devices[mesh_id]['last_update'] = None
                 self._devices[mesh_id]['update_count'] = 0
+        self._state['last_rssi_check'] = None
+        self._state['connected_device'] = None
 
     async def _async_update_mesh_state(self):
         if not self.is_connected() and not self.is_reconnecting():
@@ -359,6 +360,8 @@ class ZenggeMesh(DataUpdateCoordinator):
         if self.is_connected():
             return
         for mesh_id, device_info in self._getConnectableDevices():
+            if device_info['rssi'] <= -127:  #Anything equal to or below -127 is not in connection range
+                continue
             while self.is_reconnecting():
                 await asyncio.sleep(.1)
             if self.is_connected():
@@ -366,39 +369,40 @@ class ZenggeMesh(DataUpdateCoordinator):
                 self._state['connected_device'] = device_info['name']
                 self._state['last_connection'] = dt_util.now()
                 await self._async_update_mesh_state()
-                _LOGGER.info("[%s][%s][%s] Connected", self.mesh_name, device_info['name'], device.mac)
+                _LOGGER.info("[%s][%s][%s] Connected", self.mesh_name, device_info['name'], device_info['mac'])
                 break
             if device_info['mac'] is None:
                 continue
             #ble_device = bluetooth.async_ble_device_from_address(self.hass, device_info['mac'])
-            device = ZenggeMeshLight(device_info['mac'], None, self._mesh_name, self._mesh_password, hass=self.hass)
+            device = ZenggeMeshLight(device_info['mac'], None, self._mesh_name, self._mesh_password, hass=self.hass, disconnect_callback=self.update_status_of_all_devices_to_disabled)
             try:
-                _LOGGER.info("[%s][%s][%s] Trying to connect", self.mesh_name, device_info['name'], device.mac)
+                _LOGGER.info("[%s][%s][%s] Trying to connect", self.mesh_name, device_info['name'], device_info['mac'])
                 async with async_timeout.timeout(30):
                     if await device.connect():
                         self._connected_bluetooth_device = device
                         self._state['connected_device'] = device_info['name']
                         self._state['last_connection'] = dt_util.now()
                         await self._async_update_mesh_state()
-                        _LOGGER.info("[%s][%s][%s] Connected", self.mesh_name, device_info['name'], device.mac)
+                        _LOGGER.info("[%s][%s][%s] Connected", self.mesh_name, device_info['name'], device_info['mac'])
                         break
                     else:
-                        _LOGGER.info("[%s][%s][%s] Could not connect", self.mesh_name, device_info['name'], device.mac)
+                        _LOGGER.info("[%s][%s][%s] Could not connect", self.mesh_name, device_info['name'], device_info['mac'])
             except Exception as e:
                 _LOGGER.info('[%s][%s][%s] Failed to connect, trying next device [%s] %s',
-                                  self.mesh_name, device_info['name'], device.mac, type(e).__name__, e)
+                                  self.mesh_name, device_info['name'], device_info['mac'], type(e).__name__, e)
 
-            _LOGGER.info('[%s][%s][%s] Setting up Bluetooth connection failed, making sure Bluetooth device stops trying', self.mesh_name, device_info['name'], device.mac)
+            _LOGGER.info('[%s][%s][%s] Setting up Bluetooth connection failed, making sure Bluetooth device stops trying', self.mesh_name, device_info['name'], device_info['mac'])
 
             await device.stop()
 
         _LOGGER.info('zenggemesh async connect device 4...')
 
-        if self._connected_bluetooth_device is not None:
+        if self.is_connected():
             self._connected_bluetooth_device.status_callback = self.mesh_status_callback
         else:
             # Force new RSSI check no device we could connect to
             self._state['last_rssi_check'] = None
+            _LOGGER.info("[%s][%s][%s] Last RSSI Check set to None", self.mesh_name, device_info['name'], device_info['mac'])
             await self._async_update_mesh_state()
 
     def _getConnectableDevices(self):
@@ -406,6 +410,7 @@ class ZenggeMesh(DataUpdateCoordinator):
         return filter(lambda device: device[1]['rssi'] > -9999, sorted(self._devices.items(), key=lambda t: t[1]['rssi'], reverse=True))
 
     async def _async_get_devices_rssi(self):
+        device_available = False
         if self._scanning_devices:
             _LOGGER.info(f'[{self.mesh_name}] Already scanning for devices')
             return
@@ -422,6 +427,8 @@ class ZenggeMesh(DataUpdateCoordinator):
                 _LOGGER.info('[%s][%s][%s] Bluetooth scan returns RSSI value = %s', self.mesh_name, device_info['name'],
                              device_info['mac'], devices.get(device_info['mac'].upper()).rssi)
                 self._devices[mesh_id]['rssi'] = devices.get(device_info['mac'].upper()).rssi
+                if self._devices[mesh_id]['rssi'] >= -127:
+                    device_available = True
 
             elif device_info['mac'].upper() in devices.keys():
                 _LOGGER.info('[%s][%s][%s] Bluetooth scan returns no RSSI value', self.mesh_name, device_info['name'], device_info['mac'])
@@ -431,7 +438,11 @@ class ZenggeMesh(DataUpdateCoordinator):
                 _LOGGER.info('[%s][%s][%s] Device NOT found during Bluetooth scan', self.mesh_name, device_info['name'], device_info['mac'])
                 self._devices[mesh_id]['rssi'] = -999999
 
-        self._state['last_rssi_check'] = dt_util.now()
+        if device_available == True:
+            self._state['last_rssi_check'] = dt_util.now()
+        else:
+            self._state['last_rssi_check'] = None
+            _LOGGER.info(f'[{self.mesh_name}] No available devices found during RSSI scan')
         await self._async_update_mesh_state()
 
         self._scanning_devices = False
