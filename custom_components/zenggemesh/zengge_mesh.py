@@ -55,8 +55,10 @@ class ZenggeMesh(DataUpdateCoordinator):
         #self._command_tread.daemon = True
         #self._command_tread.start()
 
+        self._startup = False
         async def startup(event):
             _LOGGER.debug('startup')
+            self._startup = True
             await self._async_get_devices_rssi()
             #asyncio.run_coroutine_threadsafe(
             #    self.async_refresh(), hass.loop
@@ -106,7 +108,8 @@ class ZenggeMesh(DataUpdateCoordinator):
         return self._connected_bluetooth_device and self._connected_bluetooth_device.reconnecting
 
     async def _async_update_data(self):
-        if self.state['last_rssi_check'] is None:
+        if self.state['last_rssi_check'] is None and self._startup == False: #Run RSSI check if new integration (no restart required)
+            _LOGGER.info('zenggemesh async update data - RSSI Check Startup False...')    
             await self._async_get_devices_rssi()
             return
         _LOGGER.info('zenggemesh async update data...')
@@ -126,7 +129,7 @@ class ZenggeMesh(DataUpdateCoordinator):
         #_LOGGER.info('zenggemesh async update data 3...')
         if self._state['last_rssi_check'] is None:
             try:
-                async with async_timeout.timeout(60):
+                async with async_timeout.timeout(20):
                     # Scan for devices and get try to determine there RSSI
                     await self._async_get_devices_rssi()
             except Exception as e:
@@ -134,8 +137,7 @@ class ZenggeMesh(DataUpdateCoordinator):
         _LOGGER.info('zenggemesh async update data 4...')
         try:
             async with async_timeout.timeout(20):
-                await self.async_request_status(0xffff)
-                #await self._async_add_command_to_queue('requestStatus', {'dest': 0xffff, 'withResponse': True})
+                await self.async_request_status()
         except Exception as e:
             _LOGGER.info('[%s] Requesting status failed - [%s] %s', self.mesh_name, type(e).__name__, e)
 
@@ -148,24 +150,24 @@ class ZenggeMesh(DataUpdateCoordinator):
             raise UpdateFailed('Reconnecting to BLE device' if self.is_reconnecting() else 'No device connected')
 
         # Give mesh time to gather status updates
-        await asyncio.sleep(.5)
+        await asyncio.sleep(2)
 
         for mesh_id, device_info in self._devices.items():
 
             _LOGGER.info(f'[{self.mesh_name}][{device_info["name"]}] update count: {device_info["update_count"]}; request count: {device_info["status_request_count"]}; RSSI: {device_info["rssi"]}; last update: {device_info["last_update"]}')
 
-            # Force status update for specific mesh_id when no new update for the last minute
+            # Force status update for specific mesh_id when no new update for the last 60 secs
             if device_info['last_update'] is None \
                     or device_info['last_update'] < dt_util.now() - timedelta(seconds=60):
-                _LOGGER.info('[%s][%s][%d] async_update: Requested status of', self.mesh_name, device_info['name'], mesh_id)
+                _LOGGER.info('[%s][%s][%d] async_update: Device offline for 60+ secs', self.mesh_name, device_info['name'], mesh_id)
 
-                self._devices[mesh_id]['status_request_count'] += 1
-                async with async_timeout.timeout(20):
-                    await self.async_request_status(mesh_id)
-                    #await self._async_add_command_to_queue('requestStatus', {'dest': mesh_id, 'withResponse': True}, True)
+                #self._devices[mesh_id]['status_request_count'] += 1
+                #async with async_timeout.timeout(20): #No need to do specific device check due to previous check hitting ALL devices
+                #    await self.async_request_status()
+                #    #await self._async_add_command_to_queue('requestStatus', {'dest': mesh_id, 'withResponse': True}, True)
 
                 # Give mesh time to gather status updates
-                await asyncio.sleep(.5)
+                #await asyncio.sleep(.5)
 
             # Disable devices we didn't get a response the last 90 seconds
             if self._devices[mesh_id]['last_update'] is not None \
@@ -214,8 +216,8 @@ class ZenggeMesh(DataUpdateCoordinator):
         self._devices[status['mesh_id']]['last_update'] = dt_util.now()
         self._devices[status['mesh_id']]['update_count'] += 1
 
-    async def async_request_status(self, mesh_id: int):
-        await self._connected_bluetooth_device.requestStatus(mesh_id)
+    async def async_request_status(self):
+        await self._connected_bluetooth_device.requestStatus()
 
     async def async_on(self, mesh_id: int):
         await self._connected_bluetooth_device.on(mesh_id)

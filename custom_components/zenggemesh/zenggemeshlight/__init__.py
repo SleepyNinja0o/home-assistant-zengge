@@ -197,12 +197,12 @@ class ZenggeMeshLight:
         self.status_callback = None
 
     async def enable_notify(self): #Huge thanks to '@cocoto' for helping me figure out this issue with Zengge!
+        await self.send_packet(0x00,bytes([]),self.mesh_id,uuid=STATUS_CHAR_UUID)
+        await asyncio.sleep(.3)
         await self.send_packet(0x01,bytes([]),self.mesh_id,uuid=STATUS_CHAR_UUID)
-        print("Enable notify packet sent...")
-        await asyncio.sleep(.5)
-        print("Executing bleak start_notify...")
+        await asyncio.sleep(.3)
         reply = await self.client.start_notify(STATUS_CHAR_UUID, self._handleNotification)
-        print("Executed bleak start_notify successfully...")
+        logger.info(f'[{self.mesh_name}][{self.mac}] Notify enabled successfully')
         return reply
 
     async def mesh_login(self):
@@ -245,7 +245,7 @@ class ZenggeMeshLight:
         packet = pckt.make_command_packet(self.session_key, self.mac, dest, command, data)
         try:
             print(f'[{self.mesh_name}][{self.mac}] Writing command {command} data {repr(data)}')
-            reply = await self.client.write_gatt_char(uuid, packet)
+            reply = await self.client.write_gatt_char(uuid, packet, withResponse)
             self.processing_command = False
             return reply
         except Exception as err:
@@ -290,13 +290,13 @@ class ZenggeMeshLight:
         self._notify_enabled = True
         return True
 
-    async def _disconnectCallback(self, event):
+    def _disconnectCallback(self, event):
         logger.info(f'[{self.mesh_name}][{self.mac}] Disconnected by backend')
         if self.session_key:
             logger.info(f'[{self.mesh_name}][{self.mac}] Try to reconnect...')
-            await self._auto_reconnect()
-            #reconnect_thread = threading.Thread(target=self._auto_reconnect, name='Reconnect-' + self.mac)
-            #reconnect_thread.start()
+            #await self._auto_reconnect()
+            reconnect_thread = threading.Thread(target=self._auto_reconnect, name='Reconnect-' + self.mac)
+            reconnect_thread.start()
 
     async def _auto_reconnect(self):
         self.session_key = None
@@ -399,6 +399,7 @@ class ZenggeMeshLight:
         status = {}
         if command == OPCODE_STATUS_RECEIVED: #This does not return any useful status info, only that the device is online
             mesh_address = struct.unpack('B', data[3:4])[0]
+            print("[%s] OPCODE_STATUS_RECEIVED", mesh_address)
         elif command == OPCODE_NOTIFICATION_RECEIVED:  #Each notification can include info for 2 devices
             device_1_data = struct.unpack('BBBBB', data[10:15])
             device_2_data = struct.unpack('BBBBB', data[15:20])
@@ -477,12 +478,12 @@ class ZenggeMeshLight:
         else:
             print(f'[{self.mesh_name}][{self.mac}] Unknown command [{command}]')
 
-    async def requestStatus(self, dest=0xffff, withResponse=False):
+    async def requestStatus(self):
         while self.processing_command == True:
             await asyncio.sleep(.1)
         self.processing_command = True
-        logger.debug(f'[{self.mesh_name}][{self.mac}] requestStatus({dest})')
-        reply = await self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01', False) #Zengge can't use Status request to receive device details, need notification requests
+        logger.debug(f'[{self.mesh_name}][{self.mac}] requestStatus')
+        reply = await self.client.write_gatt_char(STATUS_CHAR_UUID, b'\x01', True) #Zengge can't use Status request to receive device details, need notification requests
         self.processing_command = False
         return reply
 
