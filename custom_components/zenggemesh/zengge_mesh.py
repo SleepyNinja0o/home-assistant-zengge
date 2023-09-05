@@ -33,6 +33,7 @@ class ZenggeMesh(DataUpdateCoordinator):
             update_interval=timedelta(seconds=30),
         )
 
+        self.hass = hass
         self._mesh_name = mesh_name
         self._mesh_password = mesh_password
         self._mesh_long_term_key = mesh_long_term_key
@@ -40,6 +41,7 @@ class ZenggeMesh(DataUpdateCoordinator):
         self._connected_bluetooth_device: ZenggeMeshLight = None
         self._scanning_devices = False
 
+        self.last_update_success = True
         self._state = {
             'last_rssi_check': None,
             'last_connection': None,
@@ -113,8 +115,12 @@ class ZenggeMesh(DataUpdateCoordinator):
             await self._async_get_devices_rssi()
             return
         _LOGGER.info('zenggemesh async update data...')
+
         await self._async_connect_device()
         if not self.is_connected():
+            if not self.last_update_success:
+                self.update_status_of_all_devices_to_disabled()
+            self.last_update_success = False
             return False
         _LOGGER.info('zenggemesh async update data 2...')
         #if not self._command_tread.is_alive():
@@ -138,6 +144,7 @@ class ZenggeMesh(DataUpdateCoordinator):
         try:
             async with async_timeout.timeout(20):
                 await self.async_request_status()
+                self.last_update_success = True
         except Exception as e:
             _LOGGER.info('[%s] Requesting status failed - [%s] %s', self.mesh_name, type(e).__name__, e)
 
@@ -146,6 +153,7 @@ class ZenggeMesh(DataUpdateCoordinator):
             # Disable all when 2nd run is also not successful
             if not self.last_update_success:
                 self.update_status_of_all_devices_to_disabled()
+            self.last_update_success = False
 
             raise UpdateFailed('Reconnecting to BLE device' if self.is_reconnecting() else 'No device connected')
 
@@ -347,14 +355,23 @@ class ZenggeMesh(DataUpdateCoordinator):
     async def _async_connect_device(self):
         _LOGGER.info('zenggemesh async connect device...')
         while self.is_reconnecting():
-            await asyncio.sleep(.01)
+            await asyncio.sleep(.1)
         if self.is_connected():
             return
         for mesh_id, device_info in self._getConnectableDevices():
+            while self.is_reconnecting():
+                await asyncio.sleep(.1)
+            if self.is_connected():
+                self._connected_bluetooth_device = device
+                self._state['connected_device'] = device_info['name']
+                self._state['last_connection'] = dt_util.now()
+                await self._async_update_mesh_state()
+                _LOGGER.info("[%s][%s][%s] Connected", self.mesh_name, device_info['name'], device.mac)
+                break
             if device_info['mac'] is None:
                 continue
-            ble_device = bluetooth.async_ble_device_from_address(self.hass, device_info['mac'])
-            device = ZenggeMeshLight(device_info['mac'], ble_device, self._mesh_name, self._mesh_password)
+            #ble_device = bluetooth.async_ble_device_from_address(self.hass, device_info['mac'])
+            device = ZenggeMeshLight(device_info['mac'], None, self._mesh_name, self._mesh_password, hass=self.hass)
             try:
                 _LOGGER.info("[%s][%s][%s] Trying to connect", self.mesh_name, device_info['name'], device.mac)
                 async with async_timeout.timeout(30):

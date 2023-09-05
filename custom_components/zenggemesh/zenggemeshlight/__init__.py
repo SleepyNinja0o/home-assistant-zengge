@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 from bleak import BleakClient
+from homeassistant.components import bluetooth
 
 from . import packetutils as pckt
 
@@ -160,7 +161,7 @@ class ZenggeColor:
         return ZenggeColor._hsl_to_rgb(ZenggeColor._h255_to_h360(color))
 
 class ZenggeMeshLight:
-    def __init__(self, mac, ble_device=None, mesh_name="ZenggeMesh", mesh_password="ZenggeTechnology", mesh_id=0x0211):
+    def __init__(self, mac, ble_device=None, mesh_name="ZenggeMesh", mesh_password="ZenggeTechnology", mesh_id=0x0211, hass=None):
         """
         Args :
             mac: The light's MAC address as a string in the form AA:BB:CC:DD:EE:FF
@@ -170,6 +171,7 @@ class ZenggeMeshLight:
         """
         self.mac = mac
         self.mesh_id = mesh_id
+        self.hass = hass
         self.ble_device = ble_device
         self.client = None
         self.session_key = None
@@ -197,8 +199,9 @@ class ZenggeMeshLight:
         self.status_callback = None
 
     async def enable_notify(self): #Huge thanks to '@cocoto' for helping me figure out this issue with Zengge!
-        await self.send_packet(0x00,bytes([]),self.mesh_id,uuid=STATUS_CHAR_UUID)
-        await asyncio.sleep(.3)
+        #await self.send_packet(0x00,bytes([]),self.mesh_id,uuid=STATUS_CHAR_UUID)
+        #await asyncio.sleep(.3)
+        #await self.send_packet(0x01,bytes([]),self.mesh_id,uuid=STATUS_CHAR_UUID)
         await self.send_packet(0x01,bytes([]),self.mesh_id,uuid=STATUS_CHAR_UUID)
         await asyncio.sleep(.3)
         reply = await self.client.start_notify(STATUS_CHAR_UUID, self._handleNotification)
@@ -271,9 +274,10 @@ class ZenggeMeshLight:
         assert len(self.mesh_password) <= 16, "mesh_password can hold max 16 bytes"
 
         logger.info("[%s][%s] attemping connection...", self.mesh_name, self.mac)
+        self.ble_device = bluetooth.async_ble_device_from_address(self.hass, self.mac)
         if self.ble_device:
             self.client = BleakClient(self.ble_device, timeout=15, disconnected_callback=self._disconnectCallback)
-            logger.info("Connecting with BLEDevice")
+            logger.info("**Connecting with BLEDevice**")
         else:
             self.client = BleakClient(self.mac, timeout=15, disconnected_callback=self._disconnectCallback)
         
@@ -282,21 +286,32 @@ class ZenggeMeshLight:
         logger.info("[%s][%s] connected! Logging into mesh...", self.mesh_name, self.mac)
         await self.mesh_login()
 
-        logger.debug(f'[{self.mesh_name}][{self.mac}] Listen for notifications')
-        await self.enable_notify()
+        logger.info(f'[{self.mesh_name}][{self.mac}] Enabling notifications on device')
+        try:
+            await self.enable_notify()
+            self.reconnect_counter = 0
+        except:
+            if self.reconnect_counter < 2:
+                self._reconnecting = True
+                self.reconnect_counter += 1
+                await self.connect() #Retry connection 1 more time
+                return
 
         logger.debug(f'[{self.mesh_name}][{self.mac}] Send status message')
         await self.requestStatus()
+        self._reconnecting = False
         self._notify_enabled = True
         return True
 
     def _disconnectCallback(self, event):
-        logger.info(f'[{self.mesh_name}][{self.mac}] Disconnected by backend')
-        if self.session_key:
-            logger.info(f'[{self.mesh_name}][{self.mac}] Try to reconnect...')
+        logger.info(f'[{self.mesh_name}][{self.mac}] Disconnected by backend...Will reconnect within 30 secs')
+        #self.hass.async_create_task(self._auto_reconnect())
+        #if self.session_key:
+            #logger.info(f'[{self.mesh_name}][{self.mac}] Try to reconnect...')
+            #return asyncio.run_coroutine_threadsafe(self._auto_reconnect(), self.hass.loop).result()
             #await self._auto_reconnect()
-            reconnect_thread = threading.Thread(target=self._auto_reconnect, name='Reconnect-' + self.mac)
-            reconnect_thread.start()
+            #reconnect_thread = threading.Thread(target=self._auto_reconnect, name='Reconnect-' + self.mac)
+            #reconnect_thread.start()
 
     async def _auto_reconnect(self):
         self.session_key = None
@@ -309,7 +324,7 @@ class ZenggeMeshLight:
             except Exception as err:
                 self.reconnect_counter += 1
                 logger.info(f'[{self.mesh_name}][{self.mac}] Failed to reconnect attempt {self.reconnect_counter} [{type(err).__name__}] {err}')
-                asyncio.sleep(1)
+                await asyncio.sleep(1)
 
         self._reconnecting = False
 
@@ -347,7 +362,7 @@ class ZenggeMeshLight:
         message = pckt.encrypt(self.session_key, new_mesh_long_term_key.encode())
         message.insert(0, 0x6)
         await self.client.write_gatt_char(PAIR_CHAR_UUID, message)
-        asyncio.sleep(1)
+        await asyncio.sleep(1)
         reply = bytearray(await self.client.read_gatt_char(PAIR_CHAR_UUID))
         if reply[0] == 0x7:
             self.mesh_name = new_mesh_name
