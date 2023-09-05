@@ -254,6 +254,7 @@ class ZenggeMesh(DataUpdateCoordinator):
         return await self._disconnect_current_device()
     
     async def async_refresh(self):
+        _LOGGER.info('[%s] ****ASYNC REFRESH****', self.mesh_name)
         await self._async_get_devices_rssi()
 
     async def _async_add_command_to_queue(self, command: str, params, allow_to_fail: bool = False):
