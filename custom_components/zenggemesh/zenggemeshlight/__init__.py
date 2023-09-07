@@ -176,9 +176,10 @@ class ZenggeMeshLight:
         self.ble_device = ble_device
         self.client = None
         self.session_key = None
+        self.status_callback = None
 
-        self.command_char = None
-        self.status_char = None
+        #self.command_char = None - No longer needed (Awox code)
+        #self.status_char = None - No longer needed (Awox code)
 
         self._reconnecting = False
         self._notify_enabled = False
@@ -189,15 +190,15 @@ class ZenggeMeshLight:
         self.mesh_password = mesh_password
 
         # Light status
-        self.white_brightness = 1
-        self.white_temperature = 1
-        self.color_brightness = 1
-        self.red = 0
-        self.green = 0
-        self.blue = 0
-        self.color_mode = False
-        self.state = False
-        self.status_callback = None
+        #self.white_brightness = 1
+        #self.white_temperature = 1
+        #self.color_brightness = 1
+        #self.red = 0
+        #self.green = 0
+        #self.blue = 0
+        #self.color_mode = False
+        #self.state = False
+        #self.status_callback = None
 
     async def enable_notify(self): #Huge thanks to '@cocoto' for helping me figure out this issue with Zengge!
         #await self.send_packet(0x00,bytes([]),self.mesh_id,uuid=STATUS_CHAR_UUID)
@@ -385,9 +386,10 @@ class ZenggeMeshLight:
         """
         return await self.send_packet(C_MESH_RESET, b'\x00')
 
-    def readStatus(self):
-        packet = self.status_char.read()
-        return pckt.decrypt_packet(self.session_key, self.mac, packet)
+    # *** No longer needed (Awox code) ***
+    #def readStatus(self):
+    #    packet = self.status_char.read()
+    #    return pckt.decrypt_packet(self.session_key, self.mac, packet)
 
     def _handleNotification(self, cHandle, data):
 
@@ -415,75 +417,91 @@ class ZenggeMeshLight:
             if (device_1_data[0] != 0):
                 mesh_address = device_1_data[0]
                 connected = device_1_data[1]
-                brightness = device_1_data[2]
-                mode = device_1_data[3]
-                cct = color = device_1_data[4]
-                if(mode == 63 or mode == 42):
-                    color_mode = 'rgb'
-                    rgb = ZenggeColor.decode(color) #Converts from 1 value(hue) to RGB
+                if mesh_address == 255: #Mesh Address of Wi-Fi Bridge
+                    status = {
+                        'type': 'status',
+                        'mesh_id': mesh_address,
+                        'state': connected != 0,
+                    }
                 else:
-                    color_mode = 'white'
-                    rgb = [0,0,0]
-                status = {
-                    'type': 'status',
-                    'mesh_id': mesh_address,
-                    'state': brightness != 0 if connected != 0 else None,
-                    'color_mode': color_mode,
-                    'red': rgb[0],
-                    'green': rgb[1],
-                    'blue': rgb[2],
-                    'white_temperature': cct,
-                    'brightness': brightness,
-                }
+                    brightness = device_1_data[2]
+                    mode = device_1_data[3]
+                    cct = color = device_1_data[4]
+                    if(mode == 63 or mode == 42):
+                        color_mode = 'rgb'
+                        rgb = ZenggeColor.decode(color) #Converts from 1 value(hue) to RGB
+                    else:
+                        color_mode = 'white'
+                        rgb = [0,0,0]
+                    status = {
+                        'type': 'status',
+                        'mesh_id': mesh_address,
+                        'state': brightness != 0 if connected != 0 else None,
+                        'color_mode': color_mode,
+                        'red': rgb[0],
+                        'green': rgb[1],
+                        'blue': rgb[2],
+                        'white_temperature': cct,
+                        'brightness': brightness,
+                    }
                 logger.info(f'[{self.mesh_name}][{self.mac}] Parsed response - status: {status}\n')
-                if status: #and status['mesh_id'] == self.mesh_id:
-                    logger.info(f'[{self.mesh_name}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
-                    self.state = status['state']
-                    self.color_mode = status['color_mode']
-                    self.white_brightness = status['brightness']
-                    self.white_temperature = status['white_temperature']
-                    self.color_brightness = status['brightness']
-                    self.red = status['red']
-                    self.green = status['green']
-                    self.blue = status['blue']
                 if status and self.status_callback:
                     self.status_callback(status)
+                # *** No longer needed (Awox code) ***
+                #if status: #and status['mesh_id'] == self.mesh_id:
+                #    logger.info(f'[{self.mesh_name}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
+                #    self.state = status['state']
+                #    self.color_mode = status['color_mode']
+                #    self.white_brightness = status['brightness']
+                #    self.white_temperature = status['white_temperature']
+                #    self.color_brightness = status['brightness']
+                #    self.red = status['red']
+                #    self.green = status['green']
+                #    self.blue = status['blue']
             if (device_2_data[0] != 0):
                 mesh_address = device_2_data[0]
                 connected = device_2_data[1]
-                brightness = device_2_data[2]
-                mode = device_2_data[3]
-                cct = color = device_2_data[4]
-                if(mode == 63 or mode == 42):
-                    color_mode = 'rgb'
-                    rgb = ZenggeColor.decode(color) #Converts from 1 value(hue) to RGB
+                if mesh_address == 255: #Mesh Address of Wi-Fi Bridge
+                    status = {
+                        'type': 'status',
+                        'mesh_id': mesh_address,
+                        'state': connected != 0,
+                    }
                 else:
-                    color_mode = 'white'
-                    rgb = [0,0,0]
-                status = {
-                    'type': 'notification',
-                    'mesh_id': mesh_address,
-                    'state': brightness != 0 if connected != 0 else None,
-                    'color_mode': color_mode,
-                    'red': rgb[0],
-                    'green': rgb[1],
-                    'blue': rgb[2],
-                    'white_temperature': cct,
-                    'brightness': brightness,
-                }
+                    brightness = device_2_data[2]
+                    mode = device_2_data[3]
+                    cct = color = device_2_data[4]
+                    if(mode == 63 or mode == 42):
+                        color_mode = 'rgb'
+                        rgb = ZenggeColor.decode(color) #Converts from 1 value(hue) to RGB
+                    else:
+                        color_mode = 'white'
+                        rgb = [0,0,0]
+                    status = {
+                        'type': 'notification',
+                        'mesh_id': mesh_address,
+                        'state': brightness != 0 if connected != 0 else None,
+                        'color_mode': color_mode,
+                        'red': rgb[0],
+                        'green': rgb[1],
+                        'blue': rgb[2],
+                        'white_temperature': cct,
+                        'brightness': brightness,
+                    }
                 logger.info(f'[{self.mesh_name}][{self.mac}] Parsed response - status: {status}\n')
-                if status: #and status['mesh_id'] == self.mesh_id:
-                    logger.info(f'[{self.mesh_name}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
-                    self.state = status['state']
-                    self.color_mode = status['color_mode']
-                    self.white_brightness = status['brightness']
-                    self.white_temperature = status['white_temperature']
-                    self.color_brightness = status['brightness']
-                    self.red = status['red']
-                    self.green = status['green']
-                    self.blue = status['blue']
                 if status and self.status_callback:
                     self.status_callback(status)
+                # *** No longer needed (Awox code) ***
+                #if status: #and status['mesh_id'] == self.mesh_id:
+                #    logger.info(f'[{self.mesh_name}][{self.mac}] Update device status - mesh_id: {status["mesh_id"]}')
+                #    self.state = status['state']
+                #    self.color_mode = status['color_mode']
+                #    self.white_brightness = status['brightness']
+                #    self.white_temperature = status['white_temperature']
+                #    self.color_brightness = status['brightness']
+                #    self.red = status['red']
+                #    self.green = status['green']
+                #    self.blue = status['blue']
         else:
             print(f'[{self.mesh_name}][{self.mac}] Unknown command [{command}]')
 
