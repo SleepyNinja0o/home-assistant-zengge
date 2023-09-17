@@ -27,7 +27,8 @@
         "description": "Provide the credentials you use in the Hao Deng app",
         "data": {
           "username": "Username (email)",
-          "password": "Password"
+          "password": "Password",
+          "country": "Country"
         }
       },
       "select_device": {
@@ -42,7 +43,8 @@
     "error": {
       "scanning_failed": "Scanning for devices failed",
       "max_length_16": "Max 16 chars",
-      "cannot_connect": "Can not connect/login (check logs)"
+      "cannot_connect": "Can not connect/login (check logs)",
+      "missing_country": "Missing Country"
     },
     "abort": {
       "single_instance_allowed": "[%key:common::config_flow::abort::single_instance_allowed%]",

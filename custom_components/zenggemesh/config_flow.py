@@ -11,16 +11,24 @@ from homeassistant.components import bluetooth
 from homeassistant import config_entries
 from homeassistant.const import (
     CONF_USERNAME,
-    CONF_PASSWORD
+    CONF_PASSWORD,
+    CONF_COUNTRY,
 )
+
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
+
 from .const import DOMAIN, CONF_MESH_NAME, CONF_MESH_PASSWORD, CONF_MESH_KEY
 from .zengge_connect import ZenggeConnect
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def create_zengge_connect_object(username, password) -> ZenggeConnect:
-    return ZenggeConnect(username, password)
+def create_zengge_connect_object(username, password, country) -> ZenggeConnect:
+    return ZenggeConnect(username, password, country)
 
 
 class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
@@ -125,6 +133,7 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         username: str = ''
         password: str = ''
+        country: str = ''
         typeStr: str = ''
         zengge_connect = None
 
@@ -132,10 +141,13 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             username = user_input.get(CONF_USERNAME)
             password = user_input.get(CONF_PASSWORD)
+            _LOGGER.info('Before Country')
+            country = user_input.get(CONF_COUNTRY)
+            _LOGGER.info('Country: [%s]', country)
 
-        if username and password:
+        if username and password and country:
             try:
-                zengge_connect = await self.hass.async_add_executor_job(create_zengge_connect_object, username, password)
+                zengge_connect = await self.hass.async_add_executor_job(create_zengge_connect_object, username, password, country)
             except Exception as e:
                 _LOGGER.error('Can not login to Zengge cloud [%s]', e)
                 errors[CONF_PASSWORD] = 'cannot_connect'
@@ -146,6 +158,11 @@ class ZenggeMeshFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 data_schema=vol.Schema({
                     vol.Required(CONF_USERNAME, default=username): str,
                     vol.Required(CONF_PASSWORD, default=password): str,
+                    vol.Required(CONF_COUNTRY): SelectSelector(
+                        SelectSelectorConfig(
+                            mode=SelectSelectorMode.DROPDOWN, options=['AU','AL','CN','GB','ES','FR','DE','IT','JP','RU','US']
+                        )
+                    ),
                 }),
                 errors=errors,
             )

@@ -4,6 +4,7 @@ from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.backends import default_backend
 import binascii
 import requests
+import logging
 import asyncio
 import hashlib
 import urllib
@@ -13,19 +14,30 @@ import time
 import aiohttp
 
 MAGICHUE_COUNTRY_SERVERS = [{'nationName': 'Australian', 'nationCode': 'AU', 'serverApi': 'oameshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'oa.meshbroker.magichue.net'}, {'nationName': 'Avalon', 'nationCode': 'AL', 'serverApi': 'ttmeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'tt.meshbroker.magichue.net'}, {'nationName': 'China', 'nationCode': 'CN', 'serverApi': 'cnmeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'cn.meshbroker.magichue.net'}, {'nationName': 'England', 'nationCode': 'GB', 'serverApi': 'eumeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'eu.meshbroker.magichue.net'}, {'nationName': 'Espana', 'nationCode': 'ES', 'serverApi': 'eumeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'eu.meshbroker.magichue.net'}, {'nationName': 'France', 'nationCode': 'FR', 'serverApi': 'eumeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'eu.meshbroker.magichue.net'}, {'nationName': 'Germany', 'nationCode': 'DE', 'serverApi': 'eumeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'eu.meshbroker.magichue.net'}, {'nationName': 'Italy', 'nationCode': 'IT', 'serverApi': 'eumeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'eu.meshbroker.magichue.net'}, {'nationName': 'Japan', 'nationCode': 'JP', 'serverApi': 'dymeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'dy.meshbroker.magichue.net'}, {'nationName': 'Russia', 'nationCode': 'RU', 'serverApi': 'eumeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'eu.meshbroker.magichue.net'}, {'nationName': 'United States', 'nationCode': 'US', 'serverApi': 'usmeshcloud.magichue.net:8081/MeshClouds/', 'brokerApi': 'us.meshbroker.magichue.net'}]
-MAGICHUE_COUNTRY_SERVER = MAGICHUE_COUNTRY_SERVERS[10]['serverApi']
+MAGICHUE_COUNTRY_SERVER = MAGICHUE_COUNTRY_SERVERS[10]['serverApi'] #Set US server by default
 MAGICHUE_CONNECTURL = "http://" + MAGICHUE_COUNTRY_SERVER
 MAGICHUE_NATION_DATA_ENDPOINT = "apixp/MeshData/loadNationDataNew/ZG?language=en"
 MAGICHUE_USER_LOGIN_ENDPOINT = "apixp/User001/LoginForUser/ZG"
 MAGICHUE_GET_MESH_ENDPOINT = 'apixp/MeshData/GetMyMeshPlaceItems/ZG?userId='
 MAGICHUE_GET_MESH_DEVICES_ENDPOINT = 'apixp/MeshData/GetMyMeshDeviceItems/ZG?placeUniID=&userId='
 
+_LOGGER = logging.getLogger(__name__)
+
+def get_country_server(country):
+    for item in MAGICHUE_COUNTRY_SERVERS:
+        if item['nationCode'] == country:
+            return item['serverApi']
+    return MAGICHUE_COUNTRY_SERVERS[10]['serverApi'] #return US server by default
+
 
 class ZenggeConnect:
 
-    def __init__(self, username: str, password: str, installation_id: str = None):
+    def __init__(self, username: str, password: str, country: str, installation_id: str = None):
+        global MAGICHUE_COUNTRY_SERVER,MAGICHUE_CONNECTURL
         self._username = username
         self._password = password
+        self._country = country
+
         self._md5password = hashlib.md5(password.encode()).hexdigest()
 
         self._user_id = None
@@ -36,6 +48,12 @@ class ZenggeConnect:
 
         if not self._installation_id:
             self._installation_id = str(uuid.uuid4())
+
+        if country and country != '':
+            MAGICHUE_COUNTRY_SERVER = get_country_server(country)
+            MAGICHUE_CONNECTURL = "http://" + MAGICHUE_COUNTRY_SERVER
+            _LOGGER.info("Zengge server set to: " + country + " - " + MAGICHUE_COUNTRY_SERVER)
+
 
         self.login()
         self.credentials()
@@ -69,14 +87,22 @@ class ZenggeConnect:
         }
 
         response = requests.post(MAGICHUE_CONNECTURL + MAGICHUE_USER_LOGIN_ENDPOINT, headers=headers, json=payload)
+        _LOGGER.info("Zengge server response: " + repr(response.json()))
 
         if response.status_code != 200:
-            raise Exception('Login failed - %s' % response.json()['error'])
+            _LOGGER.error('Web request failed - ', response.status_code)
+            raise Exception('Web request failed - ', response.status_code)
 
-        responseJSON = response.json()['result']
-        self._user_id = responseJSON['userId']
-        self._auth_token = responseJSON['auth_token']
-        self._device_secret = responseJSON['deviceSecret']
+        responseJSON = response.json()
+
+        if responseJSON['ok'] == False:
+            _LOGGER.error('Login failed - ' + responseJSON['err_msg'])
+            raise Exception('Login failed - ' + responseJSON['err_msg'])
+
+        resultJSON = responseJSON['result']
+        self._user_id = resultJSON['userId']
+        self._auth_token = resultJSON['auth_token']
+        self._device_secret = resultJSON['deviceSecret']
 
     def credentials(self):
         if self._mesh is not None:
